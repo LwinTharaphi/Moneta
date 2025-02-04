@@ -64,9 +64,11 @@ fun MainScreen(navController: NavHostController) {
 
     Scaffold (
         bottomBar = {
-            BottomNavigationBar(navController,screens,selectedScreen) { newRoute ->
-                selectedScreen = newRoute
+            if (selectedScreen != Screen.Notification.route){
+                BottomNavigationBar(navController,screens,selectedScreen) { newRoute ->
+                    selectedScreen = newRoute
 
+                }
             }
         }
     ){ paddingValues ->
@@ -75,10 +77,22 @@ fun MainScreen(navController: NavHostController) {
             startDestination = Screen.Home.route,
             modifier = Modifier.fillMaxSize().padding(paddingValues)
         ) {
-            composable(Screen.Home.route) { HomeScreen(navController) }
-            composable(Screen.Expense.route) { ExpenseScreen(navController) }
-            composable(Screen.Budget.route) { BudgetScreen(navController) }
-            composable(Screen.Notification.route) { NotificationScreen(navController) }
+            composable(Screen.Home.route) {
+                selectedScreen = Screen.Home.route
+                HomeScreen(navController)
+            }
+            composable(Screen.Expense.route) {
+                selectedScreen = Screen.Expense.route
+                ExpenseScreen(navController)
+            }
+            composable(Screen.Budget.route) {
+                selectedScreen = Screen.Budget.route
+                BudgetScreen(navController)
+            }
+            composable(Screen.Notification.route) {
+                selectedScreen = Screen.Notification.route
+                NotificationScreen(navController)
+            }
         }
 
     }
