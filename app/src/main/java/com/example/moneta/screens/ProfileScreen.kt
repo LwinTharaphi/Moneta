@@ -1,6 +1,7 @@
 package com.example.moneta.screens
 
 import android.content.res.Resources.Theme
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +10,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -41,6 +45,20 @@ fun ProfileScreen(navController: NavController, isDarkTheme: Boolean, onThemeTog
         ){
             Text("Dark Mode", fontSize = 16.sp)
             Switch(checked = isDarkTheme, onCheckedChange = onThemeToggle)
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {navController.navigate("reminder_screen")}
+                .padding(vertical = 8.dp)
+        ) {
+            Text("Reminders", fontSize = 16.sp)
+            Icon(imageVector = Icons.Default.KeyboardArrowRight, contentDescription = "Go to Reminders")
         }
     }
 }

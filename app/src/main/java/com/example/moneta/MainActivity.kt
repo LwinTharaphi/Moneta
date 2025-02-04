@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -30,11 +31,13 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.moneta.screens.AddReminderScreen
 import com.example.moneta.screens.HomeScreen
 import com.example.moneta.screens.ExpenseScreen
 import com.example.moneta.screens.BudgetScreen
 import com.example.moneta.screens.NotificationScreen
 import com.example.moneta.screens.ProfileScreen
+import com.example.moneta.screens.ReminderScreen
 import com.example.moneta.ui.theme.MonetaTheme
 
 sealed class Screen(val route:String, val title:String, val icon: ImageVector) {
@@ -43,6 +46,8 @@ sealed class Screen(val route:String, val title:String, val icon: ImageVector) {
     object Budget: Screen("budget_screen","Budget", Icons.Filled.Add)
     object Notification: Screen("notification_screen","Notification", Icons.Filled.Notifications)
     object Profile: Screen("profile_screen","Profile",Icons.Filled.Person)
+    object Reminder: Screen("reminder_screen","Reminder",Icons.Default.KeyboardArrowRight)
+    object AddReminder: Screen("add_reminder_screen","AddReminder",Icons.Default.Add)
 }
 
 class MainActivity : ComponentActivity() {
@@ -64,6 +69,7 @@ class MainActivity : ComponentActivity() {
 fun MainScreen(navController: NavHostController) {
     val screens = listOf(Screen.Home, Screen.Expense, Screen.Budget, Screen.Profile)
     var selectedScreen by remember { mutableStateOf(Screen.Home.route) }
+    val reminders = remember { mutableStateOf<List<Triple<String, String, String>>>(emptyList()) }
 
     Scaffold (
         bottomBar = {
@@ -99,6 +105,14 @@ fun MainScreen(navController: NavHostController) {
             composable(Screen.Profile.route) {
                 selectedScreen = Screen.Profile.route
                 ProfileScreen(navController, isDarkTheme = true, onThemeToggle = {})
+            }
+            composable(Screen.Reminder.route) {
+                selectedScreen = Screen.Reminder.route
+                ReminderScreen(navController, reminders)
+            }
+            composable(Screen.AddReminder.route){
+                selectedScreen = Screen.AddReminder.route
+                AddReminderScreen(navController,reminders)
             }
         }
 
