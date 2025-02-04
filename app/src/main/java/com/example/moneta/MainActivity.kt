@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -31,12 +32,14 @@ import androidx.navigation.compose.rememberNavController
 import com.example.moneta.screens.HomeScreen
 import com.example.moneta.screens.ExpenseScreen
 import com.example.moneta.screens.BudgetScreen
+import com.example.moneta.screens.NotificationScreen
 import com.example.moneta.ui.theme.MonetaTheme
 
 sealed class Screen(val route:String, val title:String, val icon: ImageVector) {
     object Home: Screen("home_screen","Home", Icons.Filled.Home)
     object Expense: Screen("expense_screen","Expenses", Icons.Filled.ShoppingCart)
     object Budget: Screen("budget_screen","Budget", Icons.Filled.Add)
+    object Notification: Screen("notification_screen","Notification", Icons.Filled.Notifications)
 }
 
 class MainActivity : ComponentActivity() {
@@ -75,6 +78,7 @@ fun MainScreen(navController: NavHostController) {
             composable(Screen.Home.route) { HomeScreen(navController) }
             composable(Screen.Expense.route) { ExpenseScreen(navController) }
             composable(Screen.Budget.route) { BudgetScreen(navController) }
+            composable(Screen.Notification.route) { NotificationScreen(navController) }
         }
 
     }

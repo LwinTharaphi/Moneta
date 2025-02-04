@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,17 +33,28 @@ fun HomeScreen(navController: NavController) {
         ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .clickable { showDialog = true }
-                .padding(8.dp)
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = selectedDate,
-                style = MaterialTheme.typography.headlineMedium,
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = "Expand Date Picker")
+            Row (
+                modifier = Modifier.clickable { showDialog = true },
+                verticalAlignment = Alignment.CenterVertically
+            ){
+                Text(
+                    text = selectedDate,
+                    style = MaterialTheme.typography.headlineMedium,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = "Expand Date Picker")
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            IconButton(onClick = { navController.navigate("notification_screen")}) {
+                Icon(imageVector = Icons.Filled.Notifications, contentDescription = "Notifications")
+            }
         }
+
         Spacer(modifier = Modifier.height(20.dp))
 
         Text(text = "Welcome to your Finance Tracker!", style = MaterialTheme.typography.headlineLarge)
