@@ -48,13 +48,6 @@ class MainActivity : ComponentActivity() {
                     // Create a NavController to manage navigation
                     val navController = rememberNavController()
                     MainScreen(navController)
-
-//                    NavHost(navController = navController, startDestination = "home_screen") {
-//                        // Define your composable routes
-//                        composable("home_screen") { HomeScreen(navController) }
-//                        composable("expense_screen") { ExpenseScreen(navController) }
-//                        composable("budget_screen") { BudgetScreen(navController) }
-//                    }
                 }
             }
         }
