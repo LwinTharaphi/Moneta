@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +34,7 @@ import com.example.moneta.screens.HomeScreen
 import com.example.moneta.screens.ExpenseScreen
 import com.example.moneta.screens.BudgetScreen
 import com.example.moneta.screens.NotificationScreen
+import com.example.moneta.screens.ProfileScreen
 import com.example.moneta.ui.theme.MonetaTheme
 
 sealed class Screen(val route:String, val title:String, val icon: ImageVector) {
@@ -40,6 +42,7 @@ sealed class Screen(val route:String, val title:String, val icon: ImageVector) {
     object Expense: Screen("expense_screen","Expenses", Icons.Filled.ShoppingCart)
     object Budget: Screen("budget_screen","Budget", Icons.Filled.Add)
     object Notification: Screen("notification_screen","Notification", Icons.Filled.Notifications)
+    object Profile: Screen("profile_screen","Profile",Icons.Filled.Person)
 }
 
 class MainActivity : ComponentActivity() {
@@ -59,7 +62,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainScreen(navController: NavHostController) {
-    val screens = listOf(Screen.Home, Screen.Expense, Screen.Budget)
+    val screens = listOf(Screen.Home, Screen.Expense, Screen.Budget, Screen.Profile)
     var selectedScreen by remember { mutableStateOf(Screen.Home.route) }
 
     Scaffold (
@@ -92,6 +95,10 @@ fun MainScreen(navController: NavHostController) {
             composable(Screen.Notification.route) {
                 selectedScreen = Screen.Notification.route
                 NotificationScreen(navController)
+            }
+            composable(Screen.Profile.route) {
+                selectedScreen = Screen.Profile.route
+                ProfileScreen(navController, isDarkTheme = true, onThemeToggle = {})
             }
         }
 
