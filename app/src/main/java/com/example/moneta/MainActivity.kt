@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Notifications
@@ -45,6 +46,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
     object Profile: Screen("profile_screen", "Profile", Icons.Filled.Person)
     object Reminder: Screen("reminder_screen", "Reminder", Icons.Default.KeyboardArrowRight)
     object AddReminder: Screen("add_reminder_screen", "Add Reminder", Icons.Default.Add)
+    object EditProfile: Screen("edit_profile_screen","Edit Profile", Icons.Default.Edit)
 }
 
 class MainActivity : ComponentActivity() {
@@ -136,6 +138,10 @@ fun MainScreen(
             composable(Screen.AddReminder.route) {
                 selectedScreen = Screen.AddReminder.route
                 AddReminderScreen(navController, reminders) // Add Reminder Screen
+            }
+            composable(Screen.EditProfile.route){
+                selectedScreen = Screen.EditProfile.route
+                EditProfileScreen(navController)
             }
         }
     }
