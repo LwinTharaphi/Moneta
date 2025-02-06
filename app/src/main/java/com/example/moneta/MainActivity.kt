@@ -51,11 +51,21 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MonetaTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    // Create a NavController to manage navigation
+            var isDarkTheme by remember { mutableStateOf(false) } // Store theme state
+
+            MonetaTheme(darkTheme = isDarkTheme) { // Apply the theme
+                Surface(
+                    modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
                     val navController = rememberNavController()
-                    MainScreen(navController)
+                    MainScreen(
+                        navController = navController,
+                        isDarkTheme = isDarkTheme,
+                        onThemeToggle = { newTheme ->
+                            isDarkTheme = newTheme // Toggle theme on switch click
+                        }
+                    )
                 }
             }
         }
@@ -63,7 +73,11 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainScreen(navController: NavHostController) {
+fun MainScreen(
+    navController: NavHostController,
+    isDarkTheme: Boolean,
+    onThemeToggle: (Boolean) -> Unit // Callback to toggle theme
+) {
     val screens = listOf(Screen.Home, Screen.Expense, Screen.Budget, Screen.Profile)
     var selectedScreen by remember { mutableStateOf(Screen.Home.route) }
     val reminders = remember { mutableStateOf<List<Triple<String, String, String>>>(emptyList()) }
@@ -109,7 +123,11 @@ fun MainScreen(navController: NavHostController) {
             }
             composable(Screen.Profile.route) {
                 selectedScreen = Screen.Profile.route
-                ProfileScreen(navController, isDarkTheme = true, onThemeToggle = {}) // Profile Screen
+                ProfileScreen(
+                    navController = navController,
+                    isDarkTheme = isDarkTheme, // Pass the correct theme state
+                    onThemeToggle = onThemeToggle // Pass the callback to toggle theme
+                ) // Profile Screen
             }
             composable(Screen.Reminder.route) {
                 selectedScreen = Screen.Reminder.route
