@@ -55,7 +55,7 @@ fun ExpenseScreen(navController: NavController) {
         // Date & Add Button Row
         Column(modifier = Modifier.fillMaxWidth()) {
             // Line above the date
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             // Date Navigation with smaller font
             Row(
@@ -93,7 +93,7 @@ fun ExpenseScreen(navController: NavController) {
             }
 
             // Line below the date
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             // Add Expense Button at the right side
             Row(
@@ -103,10 +103,10 @@ fun ExpenseScreen(navController: NavController) {
             ) {
                 FloatingActionButton(
                     onClick = { showDialog = true },
-                    modifier = Modifier.size(36.dp), // Adjust the size to make it smaller
+                    modifier = Modifier.size(56.dp), // Adjust the size to make it smaller
                     shape = CircleShape
                 ) {
-                    Text("+", fontSize = 18.sp) // Adjust font size for smaller button
+                    Text("+", fontSize = 22.sp) // Adjust font size for smaller button
                 }
             }
         }
@@ -143,7 +143,7 @@ fun ExpenseScreen(navController: NavController) {
                         }
 
                         // Add a line separator
-                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     }
                 }
             }
@@ -184,7 +184,7 @@ fun ExpenseItem(expense: Expense) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Text(text = expense.description, fontWeight = FontWeight.Bold)
         Text(text = "$${expense.amount}")
-        Divider(color = Color.Gray, thickness = 1.dp)
+        HorizontalDivider(thickness = 1.dp, color = Color.Gray)
     }
 }
 
