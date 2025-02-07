@@ -27,7 +27,7 @@ import androidx.navigation.compose.rememberNavController
 @Composable
 fun ProfileScreen(navController: NavController, isDarkTheme: Boolean, onThemeToggle: (Boolean) -> Unit) {
     val userEmail = "johndoe@example.com"
-    var userName = "Joh Doe"
+    var userName = "John Doe"
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally

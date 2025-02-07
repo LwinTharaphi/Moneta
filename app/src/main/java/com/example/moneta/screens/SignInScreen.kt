@@ -53,7 +53,7 @@ fun SignInScreen(navController: NavController) {
             Text(
                 text = "Moneta",
                 style = TextStyle(
-                    fontSize = 32.sp, // Font size for "Moneta"
+                    fontSize = 56.sp, // Font size for "Moneta"
                     color = Color(0xFF10B981), // Emerald Green
                     letterSpacing = 2.sp
                 )
@@ -62,7 +62,7 @@ fun SignInScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(32.dp)) // Spacer to separate from the input fields
 
-        Text("Sign In", style = MaterialTheme.typography.headlineMedium)
+        Text("Sign In", style = MaterialTheme.typography.headlineSmall)
 
         Spacer(modifier = Modifier.height(16.dp))
 

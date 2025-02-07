@@ -60,7 +60,7 @@ fun SignUpScreen(navController: NavController) {
                 Text(
                     text = "Moneta",
                     style = TextStyle(
-                        fontSize = 32.sp, // Font size
+                        fontSize = 56.sp, // Font size
                         color = Color(0xFF10B981), // Emerald Green
                         letterSpacing = 2.sp
                     )
@@ -68,7 +68,7 @@ fun SignUpScreen(navController: NavController) {
         }
         }
 
-        Text("Sign Up", style = MaterialTheme.typography.headlineMedium)
+        Text("Sign Up", style = MaterialTheme.typography.headlineSmall)
 
         Spacer(modifier = Modifier.height(16.dp))
 

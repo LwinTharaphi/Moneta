@@ -22,8 +22,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -73,7 +75,7 @@ fun EditProfileScreen(navController: NavController){
             verticalAlignment = Alignment.CenterVertically
         ){
             IconButton(onClick = {navController.popBackStack()}) {
-                Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
+                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
             }
             Spacer(modifier = Modifier.width(8.dp))
             Text("Edit Profile", fontSize = 20.sp, style = MaterialTheme.typography.headlineMedium)
@@ -98,7 +100,7 @@ fun EditProfileScreen(navController: NavController){
                     modifier = Modifier.fillMaxSize()
                 )
             } else{
-                Icon(imageVector = Icons.Filled.Build, contentDescription = "Change Profile Picture", tint = Color.White)
+                Icon(imageVector = Icons.Filled.Person, contentDescription = "Change Profile Picture", tint = Color.White)
             }
         }
 
@@ -124,9 +126,10 @@ fun EditProfileScreen(navController: NavController){
 
         Button(
             onClick = { navController.popBackStack()},
+            colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.secondary),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Save")
+            Text("Save", color = MaterialTheme.colorScheme.background)
         }
     }
 }
