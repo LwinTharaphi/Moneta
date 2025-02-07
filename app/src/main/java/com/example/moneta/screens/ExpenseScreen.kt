@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,6 +38,10 @@ fun ExpenseScreen(navController: NavController) {
     var expensesByDate by remember { mutableStateOf(mutableMapOf<Date, MutableList<Expense>>()) }
     var showDialog by remember { mutableStateOf(false) }
 
+    var showBottomSheet by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
+    var selectedExpense by remember { mutableStateOf<Expense?>(null) }
+
     val dateFormat = SimpleDateFormat("MMMM dd", Locale.getDefault())
     val expenses = expensesByDate[selectedDate] ?: mutableListOf()
 
@@ -41,7 +49,10 @@ fun ExpenseScreen(navController: NavController) {
         // Title
         Text(
             text = "Your Daily Expense",
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.headlineSmall.copy(
+                color = MaterialTheme.colorScheme.primary // Use theme primary color
+            ),
+
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
 
@@ -103,11 +114,16 @@ fun ExpenseScreen(navController: NavController) {
             ) {
                 FloatingActionButton(
                     onClick = { showDialog = true },
-                    modifier = Modifier.size(56.dp), // Adjust the size to make it smaller
-                    shape = CircleShape
+                    modifier = Modifier.size(56.dp),
+                    containerColor = MaterialTheme.colorScheme.secondary // Uses Emerald Green dynamically
                 ) {
-                    Text("+", fontSize = 22.sp) // Adjust font size for smaller button
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add",
+                        tint = MaterialTheme.colorScheme.background // Ensures contrast
+                    )
                 }
+
             }
         }
 
@@ -123,7 +139,15 @@ fun ExpenseScreen(navController: NavController) {
         } else {
             LazyColumn(modifier = Modifier.weight(1f)) {
                 items(expenses) { expense ->
-                    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .clickable {
+                                selectedExpense = expense
+                                showBottomSheet = true
+                            }
+                    ) {
                         // Row for description and amount
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -132,7 +156,9 @@ fun ExpenseScreen(navController: NavController) {
                         ) {
                             Text(
                                 text = expense.description, // Expense description
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = MaterialTheme.colorScheme.onBackground // Ensures contrast in both themes
+                                ),
                                 modifier = Modifier.weight(1f) // Make description take up available space
                             )
                             Text(
@@ -153,7 +179,10 @@ fun ExpenseScreen(navController: NavController) {
         val totalExpense = expenses.sumOf { it.amount }
         Text(
             text = "Total: $totalExpense",
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.secondary // Emerald Green
+            ),
             modifier = Modifier
                 .align(Alignment.CenterHorizontally) // Align to the bottom right
                 .padding(16.dp) // Add padding around the total text
@@ -173,6 +202,41 @@ fun ExpenseScreen(navController: NavController) {
                     this[selectedDate] = newExpenses
                 }
                 showDialog = false
+            }
+        )
+    }
+
+    // Expense Bottom Sheet
+    if (showBottomSheet && selectedExpense != null) {
+        ExpenseBottomSheet(
+            expense = selectedExpense!!,
+            onDismiss = { showBottomSheet = false },
+            onEdit = {
+                showBottomSheet = false
+                showEditDialog = true // Open edit dialog instead of modifying directly
+            },
+            onDelete = {
+                expensesByDate = expensesByDate.toMutableMap().apply {
+                    this[selectedDate]?.remove(selectedExpense)
+                }
+                showBottomSheet = false
+            }
+        )
+    }
+
+    // Edit Dialog when user clicks Edit in Bottom Sheet
+    if (showEditDialog && selectedExpense != null) {
+        ExpenseEditDialog(
+            expense = selectedExpense!!,
+            onDismiss = { showEditDialog = false },
+            onConfirm = { updatedDescription, updatedAmount ->
+                expensesByDate = expensesByDate.toMutableMap().apply {
+                    this[selectedDate] = this[selectedDate]?.map {
+                        if (it == selectedExpense) Expense(updatedDescription, updatedAmount.toDouble(), selectedDate)
+                        else it
+                    }?.toMutableList() ?: mutableListOf()
+                }
+                showEditDialog = false
             }
         )
     }
@@ -201,33 +265,139 @@ fun ExpenseDialog(onDismiss: () -> Unit, onAddExpense: (String, String) -> Unit)
                 if (description.isNotEmpty() && amount.isNotEmpty()) {
                     onAddExpense(description, amount)
                 }
-            }) {
+            }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+            ) {
                 Text("Add")
             }
         },
         dismissButton = {
-            Button(onClick = onDismiss) {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+            ) {
                 Text("Cancel")
             }
         },
         title = { Text("Add Expense") },
         text = {
-            Column {
-                TextField(
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description") }
+                    label = { Text("Expense Description") }
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                TextField(
+
+                OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
-                    label = { Text("Amount") }
+                    label = { Text("Expense Amount") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true
                 )
             }
         }
     )
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ExpenseBottomSheet(
+    expense: Expense,
+    onDismiss: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.heightIn(min = 300.dp) // Adjusted height
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("Expense Details", style = MaterialTheme.typography.headlineSmall)
+            Spacer(modifier = Modifier.height(12.dp))
+            Text("Description: ${expense.description}", style = MaterialTheme.typography.bodyLarge)
+            Text("Amount: ${expense.amount}", style = MaterialTheme.typography.bodyLarge)
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Button(
+                    onClick = onEdit,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                ) { // Open Edit Dialog
+                    Text("Edit")
+                }
+                Button(
+                    onClick = onDelete,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary) // Uses Crimson Red
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.onPrimary) // White text for contrast
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+    }
+}
+
+@Composable
+fun ExpenseEditDialog(
+    expense: Expense,
+    onDismiss: () -> Unit,
+    onConfirm: (String, String) -> Unit
+) {
+    var description by remember { mutableStateOf(expense.description) }
+    var amount by remember { mutableStateOf(expense.amount.toString()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(onClick = {
+                if (description.isNotEmpty() && amount.isNotEmpty()) {
+                    onConfirm(description, amount)
+                }
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+            ) {
+                Text("Update")
+            }
+        },
+        dismissButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+            ) {
+                Text("Cancel")
+            }
+        },
+        title = { Text("Edit Expense") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Update Description") }
+                )
+
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { amount = it },
+                    label = { Text("Update Amount") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true
+                )
+            }
+        }
+    )
+}
+
+
 
 // Pie Chart
 @Composable

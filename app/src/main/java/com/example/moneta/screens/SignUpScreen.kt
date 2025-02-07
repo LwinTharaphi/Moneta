@@ -9,7 +9,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,6 +39,7 @@ fun SignUpScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -45,19 +48,20 @@ fun SignUpScreen(navController: NavController) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background)
                 .padding(bottom = 32.dp),  // Adds space below the Moneta box
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
-                    .background(Color(0xFFFFC0CB))  // Pink background (light pink color)
+                    .background(MaterialTheme.colorScheme.background)  // cool gray background
                     .padding(vertical = 16.dp, horizontal = 32.dp)
             ) {
                 Text(
                     text = "Moneta",
                     style = TextStyle(
                         fontSize = 32.sp, // Font size
-                        color = Color.White, // White text color
+                        color = Color(0xFF10B981), // Emerald Green
                         letterSpacing = 2.sp
                     )
                 )
@@ -112,17 +116,24 @@ fun SignUpScreen(navController: NavController) {
 
         // Show error message if there is any
         if (errorMessage.isNotEmpty()) {
-            Text(text = errorMessage, color = Color.Red)
+            Text(text = errorMessage, color = Color(0xFFEF4444))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // Link to sign-in screen
-        TextButton(onClick = {
-            // Navigate to SignIn Screen
-            navController.navigate("sign_in_screen")
-        }) {
-            Text("Already have an account? Sign In")
+        TextButton(
+            onClick = { navController.navigate("sign_in_screen") }
+        ) {
+            Text(
+                text = "Already have an account? Sign In",
+                style = TextStyle(
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.secondary,
+                    textDecoration = TextDecoration.Underline
+                )
+            )
         }
     }
 }

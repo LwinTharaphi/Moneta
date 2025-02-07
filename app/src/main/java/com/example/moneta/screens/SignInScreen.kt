@@ -11,7 +11,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,6 +38,7 @@ fun SignInScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)  // cool gray background
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center // Align elements at the top
@@ -43,7 +46,7 @@ fun SignInScreen(navController: NavController) {
         // "Moneta" Box with pink background and rounded corners
         Box(
             modifier = Modifier
-                .background(Color(0xFFFFC0CB))  // Pale pink background
+                .background(MaterialTheme.colorScheme.background)  // cool gray background
                 .padding(vertical = 16.dp, horizontal = 32.dp)
         )
         {
@@ -51,7 +54,7 @@ fun SignInScreen(navController: NavController) {
                 text = "Moneta",
                 style = TextStyle(
                     fontSize = 32.sp, // Font size for "Moneta"
-                    color = Color.White, // White text color
+                    color = Color(0xFF10B981), // Emerald Green
                     letterSpacing = 2.sp
                 )
             )
@@ -92,16 +95,23 @@ fun SignInScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(8.dp))
 
         if (errorMessage.isNotEmpty()) {
-            Text(text = errorMessage, color = Color.Red)
+            Text(text = errorMessage, color = Color(0xFFEF4444))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        TextButton(onClick = {
-            // Navigate to SignUp Screen
-            navController.navigate("sign_up_screen")
-        }) {
-            Text("Don't have an account? Sign Up")
+        TextButton(
+            onClick = { navController.navigate("sign_up_screen") }
+        ) {
+            Text(
+                text = "Don't have an account? Sign Up",
+                style = TextStyle(
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.secondary,
+                    textDecoration = TextDecoration.Underline
+                )
+            )
         }
     }
 }

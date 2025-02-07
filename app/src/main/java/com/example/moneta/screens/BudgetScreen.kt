@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -44,7 +45,7 @@ fun BudgetScreen(navController: NavController) {
             Text(text = "Budget List", style = MaterialTheme.typography.headlineSmall)
             YearSelection(selectedYear = selectedYear, onYearSelected = { selectedYear = it })
         }
-        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
         Spacer(modifier = Modifier.height(10.dp))
 
@@ -74,9 +75,13 @@ fun BudgetScreen(navController: NavController) {
             modifier = Modifier
                 .padding(16.dp)
                 .align(Alignment.End),
-            shape = CircleShape
+            containerColor = MaterialTheme.colorScheme.secondary // Uses Emerald Green dynamically
         ) {
-            Text("+")
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Add",
+                tint = MaterialTheme.colorScheme.background // Ensures contrast
+            )
         }
     }
 
@@ -148,7 +153,7 @@ fun BudgetRow(budget: BudgetData, onEdit: () -> Unit, onDelete: () -> Unit) {
 
                 // Row for icons aligned to the right
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(-24.dp),
+                    horizontalArrangement = Arrangement.spacedBy((-24).dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onEdit) {

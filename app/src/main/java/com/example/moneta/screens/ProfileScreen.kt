@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.KeyboardArrowRight
@@ -79,17 +81,17 @@ fun ProfileScreen(navController: NavController, isDarkTheme: Boolean, onThemeTog
                 .padding(vertical = 8.dp)
         ) {
             Text("Reminders", fontSize = 16.sp)
-            Icon(imageVector = Icons.Default.KeyboardArrowRight, contentDescription = "Go to Reminders")
+            Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Go to Reminders")
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
         Button(
             onClick = { navController.navigate("sign_in_screen")},
-            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+            colors = ButtonDefaults.buttonColors(Color(0xFFEF4444)),
             modifier = Modifier.fillMaxWidth()
         ){
-            Icon(imageVector = Icons.Default.ExitToApp, contentDescription = "sign Out")
+            Icon(imageVector = Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "sign Out")
             Spacer(modifier = Modifier.width(8.dp))
             Text("Sign Out")
         }

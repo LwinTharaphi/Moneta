@@ -3,41 +3,39 @@ package com.example.moneta.ui.theme
 import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = EmeraldGreen, // Primary buttons, main theme
+    secondary = CoolGray, // Secondary UI elements
+    tertiary = SoftYellow, // Highlights
+    background = DeepBlack, // Background
+    surface = DeepBlack,
+    onPrimary = Color.White, // Text on primary color
+    onSecondary = LightGray, // Text on secondary
+    onBackground = LightGray, // Text on background
+    onSurface = LightGray // General text
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    primary = DeepBlue, // Main action buttons
+    secondary = EmeraldGreen, // Positive indicators
+    tertiary = CrimsonRed, // Alerts, delete actions
+    background = CoolGray, // App background
+    surface = Color.White, // Card backgrounds
+    onPrimary = Color.White, // Text on primary buttons
+    onSecondary = Color.White, // Secondary text
+    onBackground = DarkGray, // Text on background
+    onSurface = DarkGray // General text
 )
 
 @Composable
 fun MonetaTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
