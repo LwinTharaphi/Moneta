@@ -31,7 +31,7 @@ fun SignInScreen(navController: NavController) {
             errorMessage = "Please fill in both fields"
         } else {
             // Navigate to the home screen
-            navController.navigate("home_screen")
+            navController.navigate("expense_screen")
         }
     }
 

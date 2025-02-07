@@ -49,6 +49,10 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+
+    // Use Material Icons Extended for more icons like PieChart, etc.
+    implementation (libs.androidx.material.icons.extended)
+
     implementation(libs.androidx.room.common)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.navigation.runtime.android)

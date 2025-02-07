@@ -32,7 +32,7 @@ fun SignUpScreen(navController: NavController) {
             errorMessage = "Passwords do not match"
         } else {
             // Proceed with the sign-up process, for now, navigate to the home screen
-            navController.navigate("home_screen")
+            navController.navigate("expense_screen")
         }
     }
 

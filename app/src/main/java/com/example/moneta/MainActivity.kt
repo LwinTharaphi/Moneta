@@ -6,13 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -40,11 +35,14 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
     object SignIn: Screen("sign_in_screen", "Sign In", null)
     object SignUp: Screen("sign_up_screen", "Sign Up", null)
     object Home: Screen("home_screen", "Home", Icons.Filled.Home)
+    object Report : Screen("report_screen", "Report", Icons.Filled.Assessment)
     object Expense: Screen("expense_screen", "Expenses", Icons.Filled.ShoppingCart)
-    object Budget: Screen("budget_screen", "Budget", Icons.Filled.Add)
+    object Budget: Screen("budget_screen", "Budget", Icons.Filled.AttachMoney)
     object Notification: Screen("notification_screen", "Notification", Icons.Filled.Notifications)
     object Profile: Screen("profile_screen", "Profile", Icons.Filled.Person)
-    object Reminder: Screen("reminder_screen", "Reminder", Icons.Default.KeyboardArrowRight)
+    object Reminder: Screen("reminder_screen", "Reminder",
+        Icons.AutoMirrored.Filled.KeyboardArrowRight
+    )
     object AddReminder: Screen("add_reminder_screen", "Add Reminder", Icons.Default.Add)
     object EditProfile: Screen("edit_profile_screen","Edit Profile", Icons.Default.Edit)
 }
@@ -80,8 +78,8 @@ fun MainScreen(
     isDarkTheme: Boolean,
     onThemeToggle: (Boolean) -> Unit // Callback to toggle theme
 ) {
-    val screens = listOf(Screen.Home, Screen.Expense, Screen.Budget, Screen.Profile)
-    var selectedScreen by remember { mutableStateOf(Screen.Home.route) }
+    val screens = listOf(Screen.Expense, Screen.Report, Screen.Budget, Screen.Profile)
+    var selectedScreen by remember { mutableStateOf(Screen.Expense.route) }
     val reminders = remember { mutableStateOf<List<Triple<String, String, String>>>(emptyList()) }
 
     Scaffold(
@@ -114,6 +112,10 @@ fun MainScreen(
             composable(Screen.Expense.route) {
                 selectedScreen = Screen.Expense.route
                 ExpenseScreen(navController) // Expense Screen
+            }
+            composable(Screen.Report.route) {
+                selectedScreen = Screen.Report.route
+                ReportScreen(navController) // Expense Screen
             }
             composable(Screen.Budget.route) {
                 selectedScreen = Screen.Budget.route

@@ -89,67 +89,67 @@ fun HomeScreenPreview() {
     HomeScreen(navController = navController)
 }
 
-fun getCurrentMonthYear(): String {
-    val calendar = Calendar.getInstance()
-    val formatter = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
-    return formatter.format(calendar.time)
-}
-
-@Composable
-fun MonthYearPickerDialog(
-    currentSelection: String,
-    onDismiss: ()-> Unit,
-    onMonthSelected: (String)->Unit
-){
-    var selectedYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
-    val months = listOf(
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-    )
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ){
-                IconButton(onClick = { selectedYear-- }) {
-                    Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "Previous Year")
-                }
-                Text(text = "$selectedYear", fontSize = 20.sp)
-                IconButton(onClick = { selectedYear++ }) {
-                    Icon(imageVector = Icons.Filled.ArrowForward, contentDescription = "Next Year")
-                }
-            }
-        },
-        text = {
-            Column {
-               for (i in months.indices step 6){
-                   Row (
-                       modifier = Modifier.fillMaxWidth(),
-                       horizontalArrangement = Arrangement.SpaceEvenly
-                   ) {
-                       for (j in i until (i+6).coerceAtMost(months.size)){
-                           Text(
-                               text = months[j],
-                               modifier = Modifier
-                                   .clickable{
-                                       onMonthSelected("${months[j]} $selectedYear")
-                                       onDismiss()
-                                   }
-                                   .padding(8.dp),
-                               fontSize = 16.sp
-                           )
-                       }
-                   }
-               }
-            }
-        },
-        confirmButton = {},
-        shape = RoundedCornerShape(12.dp)
-    )
-}
+//fun getCurrentMonthYear(): String {
+//    val calendar = Calendar.getInstance()
+//    val formatter = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
+//    return formatter.format(calendar.time)
+//}
+//
+//@Composable
+//fun MonthYearPickerDialog(
+//    currentSelection: String,
+//    onDismiss: ()-> Unit,
+//    onMonthSelected: (String)->Unit
+//){
+//    var selectedYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
+//    val months = listOf(
+//        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+//        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+//    )
+//
+//    AlertDialog(
+//        onDismissRequest = onDismiss,
+//        title = {
+//            Row(
+//                modifier = Modifier.fillMaxWidth(),
+//                horizontalArrangement = Arrangement.SpaceBetween,
+//                verticalAlignment = Alignment.CenterVertically
+//            ){
+//                IconButton(onClick = { selectedYear-- }) {
+//                    Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "Previous Year")
+//                }
+//                Text(text = "$selectedYear", fontSize = 20.sp)
+//                IconButton(onClick = { selectedYear++ }) {
+//                    Icon(imageVector = Icons.Filled.ArrowForward, contentDescription = "Next Year")
+//                }
+//            }
+//        },
+//        text = {
+//            Column {
+//               for (i in months.indices step 6){
+//                   Row (
+//                       modifier = Modifier.fillMaxWidth(),
+//                       horizontalArrangement = Arrangement.SpaceEvenly
+//                   ) {
+//                       for (j in i until (i+6).coerceAtMost(months.size)){
+//                           Text(
+//                               text = months[j],
+//                               modifier = Modifier
+//                                   .clickable{
+//                                       onMonthSelected("${months[j]} $selectedYear")
+//                                       onDismiss()
+//                                   }
+//                                   .padding(8.dp),
+//                               fontSize = 16.sp
+//                           )
+//                       }
+//                   }
+//               }
+//            }
+//        },
+//        confirmButton = {},
+//        shape = RoundedCornerShape(12.dp)
+//    )
+//}
 
 

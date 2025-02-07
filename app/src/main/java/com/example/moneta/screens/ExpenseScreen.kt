@@ -10,6 +10,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -46,15 +48,27 @@ fun ExpenseScreen(navController: NavController) {
     val expenses = expensesByDate[selectedDate] ?: mutableListOf()
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        // Title
-        Text(
-            text = "Your Daily Expense",
-            style = MaterialTheme.typography.headlineSmall.copy(
-                color = MaterialTheme.colorScheme.primary // Use theme primary color
-            ),
+        // Title with Notification Icon
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween, // Space between title and icon
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Your Daily Expense",
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    color = MaterialTheme.colorScheme.primary
+                ),
+                modifier = Modifier.weight(1f) // Make title take available space
+            )
 
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        )
+            IconButton(onClick = { navController.navigate("notification_screen") }) {
+                Icon(
+                    imageVector = Icons.Filled.Notifications,
+                    contentDescription = "Notifications"
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -195,16 +209,17 @@ fun ExpenseScreen(navController: NavController) {
     if (showDialog) {
         ExpenseDialog(
             onDismiss = { showDialog = false },
-            onAddExpense = { description, amount ->
+            onAddExpense = { description, amount, category ->
                 expensesByDate = expensesByDate.toMutableMap().apply {
                     val newExpenses = this[selectedDate]?.toMutableList() ?: mutableListOf()
-                    newExpenses.add(Expense(description, amount.toDouble(), selectedDate))
+                    newExpenses.add(Expense(description, amount.toDouble(), selectedDate, category))
                     this[selectedDate] = newExpenses
                 }
                 showDialog = false
             }
         )
     }
+
 
     // Expense Bottom Sheet
     if (showBottomSheet && selectedExpense != null) {
@@ -229,10 +244,10 @@ fun ExpenseScreen(navController: NavController) {
         ExpenseEditDialog(
             expense = selectedExpense!!,
             onDismiss = { showEditDialog = false },
-            onConfirm = { updatedDescription, updatedAmount ->
+            onConfirm = { updatedDescription, updatedAmount, updatedCategory ->
                 expensesByDate = expensesByDate.toMutableMap().apply {
                     this[selectedDate] = this[selectedDate]?.map {
-                        if (it == selectedExpense) Expense(updatedDescription, updatedAmount.toDouble(), selectedDate)
+                        if (it == selectedExpense) Expense(updatedDescription, updatedAmount.toDouble(), selectedDate, updatedCategory)
                         else it
                     }?.toMutableList() ?: mutableListOf()
                 }
@@ -240,6 +255,7 @@ fun ExpenseScreen(navController: NavController) {
             }
         )
     }
+
 }
 
 // Expense Item
@@ -253,17 +269,22 @@ fun ExpenseItem(expense: Expense) {
 }
 
 // Expense Dialog
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExpenseDialog(onDismiss: () -> Unit, onAddExpense: (String, String) -> Unit) {
+fun ExpenseDialog(onDismiss: () -> Unit, onAddExpense: (String, String, String) -> Unit) {
     var description by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("Dining") }
+    var isDropdownExpanded by remember { mutableStateOf(false) }
+
+    val categories = listOf("Dining", "Transport", "Beverages", "Groceries", "Entertainment", "Shopping", "Other")
 
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
             Button(onClick = {
                 if (description.isNotEmpty() && amount.isNotEmpty()) {
-                    onAddExpense(description, amount)
+                    onAddExpense(description, amount, selectedCategory)
                 }
             }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
             ) {
@@ -281,12 +302,14 @@ fun ExpenseDialog(onDismiss: () -> Unit, onAddExpense: (String, String) -> Unit)
         title = { Text("Add Expense") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Expense Description
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
                     label = { Text("Expense Description") }
                 )
 
+                // Expense Amount
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
@@ -294,10 +317,45 @@ fun ExpenseDialog(onDismiss: () -> Unit, onAddExpense: (String, String) -> Unit)
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true
                 )
+
+                // Category Dropdown
+                ExposedDropdownMenuBox(
+                    expanded = isDropdownExpanded,
+                    onExpandedChange = { isDropdownExpanded = !isDropdownExpanded }
+                ) {
+                    OutlinedTextField(
+                        value = selectedCategory,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Category") },
+                        trailingIcon = {
+                            Icon(Icons.Filled.ArrowDropDown, contentDescription = "Dropdown")
+                        },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .clickable { isDropdownExpanded = true }
+                    )
+                    DropdownMenu(
+                        expanded = isDropdownExpanded,
+                        onDismissRequest = { isDropdownExpanded = false }
+                    ) {
+                        categories.forEach { category ->
+                            DropdownMenuItem(
+                                text = { Text(category) },
+                                onClick = {
+                                    selectedCategory = category
+                                    isDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
         }
     )
 }
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -309,7 +367,7 @@ fun ExpenseBottomSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        modifier = Modifier.heightIn(min = 300.dp) // Adjusted height
+        modifier = Modifier.heightIn(min = 350.dp) // Adjusted height for better spacing
     ) {
         Column(
             modifier = Modifier
@@ -319,8 +377,38 @@ fun ExpenseBottomSheet(
         ) {
             Text("Expense Details", style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(12.dp))
-            Text("Description: ${expense.description}", style = MaterialTheme.typography.bodyLarge)
-            Text("Amount: ${expense.amount}", style = MaterialTheme.typography.bodyLarge)
+
+            // Expense Description
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Description:", fontWeight = FontWeight.Bold)
+                Text(expense.description, style = MaterialTheme.typography.bodyLarge)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Expense Amount
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Amount:", fontWeight = FontWeight.Bold)
+                Text("$${expense.amount}", style = MaterialTheme.typography.bodyLarge)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Expense Category
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Category:", fontWeight = FontWeight.Bold)
+                Text(expense.category, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+            }
+
             Spacer(modifier = Modifier.height(20.dp))
 
             Row(
@@ -330,14 +418,14 @@ fun ExpenseBottomSheet(
                 Button(
                     onClick = onEdit,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                ) { // Open Edit Dialog
+                ) {
                     Text("Edit")
                 }
                 Button(
                     onClick = onDelete,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary) // Uses Crimson Red
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
                 ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.onPrimary) // White text for contrast
+                    Text("Delete", color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
 
@@ -346,24 +434,30 @@ fun ExpenseBottomSheet(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpenseEditDialog(
     expense: Expense,
     onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit
+    onConfirm: (String, String, String) -> Unit
 ) {
     var description by remember { mutableStateOf(expense.description) }
     var amount by remember { mutableStateOf(expense.amount.toString()) }
+    var selectedCategory by remember { mutableStateOf(expense.category) }
+    var isDropdownExpanded by remember { mutableStateOf(false) }
+
+    val categories = listOf("Dining", "Transport", "Beverages", "Groceries", "Entertainment", "Shopping", "Other")
 
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            Button(onClick = {
-                if (description.isNotEmpty() && amount.isNotEmpty()) {
-                    onConfirm(description, amount)
-                }
-            },
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+            Button(
+                onClick = {
+                    if (description.isNotEmpty() && amount.isNotEmpty()) {
+                        onConfirm(description, amount, selectedCategory)
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
             ) {
                 Text("Update")
             }
@@ -379,12 +473,14 @@ fun ExpenseEditDialog(
         title = { Text("Edit Expense") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Expense Description
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
                     label = { Text("Update Description") }
                 )
 
+                // Expense Amount
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
@@ -392,6 +488,39 @@ fun ExpenseEditDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true
                 )
+
+                // Category Dropdown
+                ExposedDropdownMenuBox(
+                    expanded = isDropdownExpanded,
+                    onExpandedChange = { isDropdownExpanded = !isDropdownExpanded }
+                ) {
+                    OutlinedTextField(
+                        value = selectedCategory,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Category") },
+                        trailingIcon = {
+                            Icon(Icons.Filled.ArrowDropDown, contentDescription = "Dropdown")
+                        },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .clickable { isDropdownExpanded = true }
+                    )
+                    DropdownMenu(
+                        expanded = isDropdownExpanded,
+                        onDismissRequest = { isDropdownExpanded = false }
+                    ) {
+                        categories.forEach { category ->
+                            DropdownMenuItem(
+                                text = { Text(category) },
+                                onClick = {
+                                    selectedCategory = category
+                                    isDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
         }
     )
@@ -473,7 +602,8 @@ fun PieChart(expenses: List<Expense>, modifier: Modifier = Modifier) {
 }
 
 // Expense Data Class
-data class Expense(val description: String, val amount: Double, val date: Date)
+data class Expense(val description: String, val amount: Double, val date: Date, val category: String)
+
 
 // Preview
 @Preview(showBackground = true)
