@@ -97,7 +97,7 @@ fun ReportScreen(navController: NavController) {
 
             // Total Expense
             Text(
-                text = "Total Expense: $${"%.2f".format(totalExpense)}",
+                text = "Total Expense: ฿${"%.2f".format(totalExpense)}",
                 style = MaterialTheme.typography.bodyLarge
             )
         }
@@ -209,7 +209,7 @@ fun CategoryRow(category: Category, totalExpense: Double) {
 
         // Amount
         Text(
-            text = "$${"%.2f".format(category.amount)}",
+            text = "฿${"%.2f".format(category.amount)}",
             style = MaterialTheme.typography.bodyMedium
         )
     }

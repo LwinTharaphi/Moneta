@@ -170,14 +170,14 @@ fun ExpenseScreen(navController: NavController) {
                         ) {
                             Text(
                                 text = expense.description, // Expense description
-                                style = MaterialTheme.typography.bodySmall.copy(
+                                style = MaterialTheme.typography.bodyMedium.copy(
                                     color = MaterialTheme.colorScheme.onBackground // Ensures contrast in both themes
                                 ),
                                 modifier = Modifier.weight(1f) // Make description take up available space
                             )
                             Text(
-                                text = "${expense.amount}", // Expense amount
-                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                text = "฿${expense.amount}", // Expense amount
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                 modifier = Modifier.align(Alignment.CenterVertically) // Align vertically
                             )
                         }
@@ -192,7 +192,7 @@ fun ExpenseScreen(navController: NavController) {
         // Total Expense at the bottom right (placed below LazyColumn)
         val totalExpense = expenses.sumOf { it.amount }
         Text(
-            text = "Total: $totalExpense",
+            text = "Total: ฿$totalExpense",
             style = MaterialTheme.typography.bodyLarge.copy(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.secondary // Emerald Green
@@ -263,7 +263,7 @@ fun ExpenseScreen(navController: NavController) {
 fun ExpenseItem(expense: Expense) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Text(text = expense.description, fontWeight = FontWeight.Bold)
-        Text(text = "$${expense.amount}")
+        Text(text = "฿${expense.amount}")
         HorizontalDivider(thickness = 1.dp, color = Color.Gray)
     }
 }
@@ -288,7 +288,7 @@ fun ExpenseDialog(onDismiss: () -> Unit, onAddExpense: (String, String, String) 
                 }
             }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
             ) {
-                Text("Add")
+                Text("Add", color = MaterialTheme.colorScheme.background) // Ensures contrast
             }
         },
         dismissButton = {
@@ -296,7 +296,7 @@ fun ExpenseDialog(onDismiss: () -> Unit, onAddExpense: (String, String, String) 
                 onClick = onDismiss,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
             ) {
-                Text("Cancel")
+                Text("Cancel", color = MaterialTheme.colorScheme.background) // Ensures contrast
             }
         },
         title = { Text("Add Expense") },
@@ -395,7 +395,7 @@ fun ExpenseBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("Amount:", fontWeight = FontWeight.Bold)
-                Text("$${expense.amount}", style = MaterialTheme.typography.bodyLarge)
+                Text("฿${expense.amount}", style = MaterialTheme.typography.bodyLarge)
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -459,7 +459,7 @@ fun ExpenseEditDialog(
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
             ) {
-                Text("Update")
+                Text("Update", color = MaterialTheme.colorScheme.background) // Ensures contrast
             }
         },
         dismissButton = {
@@ -467,7 +467,7 @@ fun ExpenseEditDialog(
                 onClick = onDismiss,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
             ) {
-                Text("Cancel")
+                Text("Cancel", color = MaterialTheme.colorScheme.background) // Ensures contrast
             }
         },
         title = { Text("Edit Expense") },

@@ -124,7 +124,7 @@ fun AddReminderScreen(navController: NavController, reminders: MutableState<List
                     if (reminderName.isEmpty()) {
                         showDialog = true
                     } else {
-                        reminders.value = reminders.value + Triple(reminderName, selectedTime, repeatOption)
+                        reminders.value += Triple(reminderName, selectedTime, repeatOption)
                         navController.popBackStack()
                     }
                 }
@@ -158,7 +158,7 @@ fun AddReminderScreen(navController: NavController, reminders: MutableState<List
                             label = { Text("Enter Name") },
                             modifier = Modifier.width(180.dp)
                         )
-                        Icon(imageVector = Icons.Default.Edit, contentDescription = "Chosse")
+                        Icon(imageVector = Icons.Default.Edit, contentDescription = "Choose")
 
                     }
                 }
@@ -202,26 +202,26 @@ fun AddReminderScreen(navController: NavController, reminders: MutableState<List
                 }
             }
         }
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            elevation = CardDefaults.cardElevation(4.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Text("Notification Content", fontSize = 18.sp, style = MaterialTheme.typography.bodyLarge)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Time to record your accounts", fontSize = 16.sp)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "Record one now",
-                    fontSize = 12.sp,
-                )
-            }
-        }
+//        Spacer(modifier = Modifier.height(20.dp))
+//
+//        Card(
+//            modifier = Modifier.fillMaxWidth(),
+//            shape = RoundedCornerShape(12.dp),
+//            elevation = CardDefaults.cardElevation(4.dp)
+//        ) {
+//            Column(
+//                modifier = Modifier.padding(16.dp)
+//            ) {
+//                Text("Notification Content", fontSize = 18.sp, style = MaterialTheme.typography.bodyLarge)
+//                Spacer(modifier = Modifier.height(8.dp))
+//                Text("Time to record your accounts", fontSize = 16.sp)
+//                Spacer(modifier = Modifier.height(8.dp))
+//                Text(
+//                    "Record one now",
+//                    fontSize = 12.sp,
+//                )
+//            }
+//        }
 
     }
 }

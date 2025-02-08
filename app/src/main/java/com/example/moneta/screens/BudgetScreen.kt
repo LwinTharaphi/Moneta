@@ -3,22 +3,30 @@ package com.example.moneta.screens
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import kotlin.random.Random
@@ -27,23 +35,38 @@ data class BudgetData(val month: String, val year: Int, val total: Float, val us
 
 @Composable
 fun BudgetScreen(navController: NavController) {
-    val usedAmount = 7000f
+    val usedAmount = 6000f
     var budgets by remember { mutableStateOf(listOf<BudgetData>()) }
     var showDialog by remember { mutableStateOf(false) }
     var editDialog by remember { mutableStateOf(false) }
     var selectedBudget by remember { mutableStateOf<BudgetData?>(null) }
     var newMonth by remember { mutableStateOf("") }
     var newAmount by remember { mutableStateOf("") }
+    var showDateDialog by remember { mutableStateOf(false) }
+    var selectedMonthYear by remember { mutableStateOf(getCurrentMonthYear()) }
     var selectedYear by remember { mutableIntStateOf(2025) }
 
     Column(modifier = Modifier.padding(16.dp)) {
+        // Top Row with "Budget" on the left and Month-Year on the right
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = "Budget List", style = MaterialTheme.typography.headlineSmall)
-            YearSelection(selectedYear = selectedYear, onYearSelected = { selectedYear = it })
+            Text(text = "Budget", style = MaterialTheme.typography.headlineSmall)
+
+            // Month-Year selection on the right
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { showDateDialog = true }
+            ) {
+                Text(
+                    text = selectedMonthYear,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+                Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = "Expand Month-Year Picker")
+            }
         }
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
@@ -126,6 +149,18 @@ fun BudgetScreen(navController: NavController) {
             onDismiss = { editDialog = false }
         )
     }
+
+    // Dialog for Month-Year Picker
+    if (showDateDialog) {
+        MonthYearPickerDialog(
+            currentSelection = selectedMonthYear,
+            onDismiss = { showDateDialog = false },
+            onMonthSelected = { newMonthYear ->
+                newMonthYear.also { selectedMonthYear = it }
+                showDateDialog = false
+            }
+        )
+    }
 }
 
 @Composable
@@ -164,12 +199,11 @@ fun BudgetRow(budget: BudgetData, onEdit: () -> Unit, onDelete: () -> Unit) {
                     }
                 }
             }
-            Text("Total: $${budget.total}", color = Color.Black)
-            Text("Used: $${budget.used}", color = Color.Black)
+            Text("Total: ฿${budget.total}", color = Color.Black)
+            Text("Used: ฿${budget.used}", color = Color.Black)
         }
     }
 }
-
 
 @Composable
 fun BudgetDialog(
@@ -181,59 +215,95 @@ fun BudgetDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val months = listOf(
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    )
+
+    var expanded by remember { mutableStateOf(false) }
+    var selectedMonth by remember { mutableStateOf(newMonth) }
+    var textFieldSize by remember { mutableStateOf(Size.Zero) } // Stores the width of the OutlinedTextField
+    val density = LocalDensity.current
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
             Column {
-                OutlinedTextField(
-                    value = newMonth,
-                    onValueChange = onMonthChange,
-                    label = { Text("Month") }
-                )
+                // Month Selection Field (Styled like Amount Input)
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = selectedMonth.ifEmpty { "Select Month" },
+                        onValueChange = {}, // No manual input
+                        label = { Text("Month") },
+                        readOnly = true, // Prevent keyboard input
+                        trailingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = "Expand month selection",
+                                modifier = Modifier.clickable { expanded = !expanded }
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onGloballyPositioned { coordinates ->
+                                textFieldSize = coordinates.size.toSize() // Capture width of TextField
+                            }
+                            .clickable { expanded = !expanded }
+                    )
+
+                    // Dropdown Menu for Month Selection
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier
+                            .width(with(density) { textFieldSize.width.toDp() }) // Match width of TextField
+                    ) {
+                        months.forEach { month ->
+                            DropdownMenuItem(
+                                text = { Text(text = month) },
+                                onClick = {
+                                    selectedMonth = month
+                                    onMonthChange(month)
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(8.dp))
+
+                // Amount Input Field
                 OutlinedTextField(
                     value = newAmount,
                     onValueChange = onAmountChange,
-                    label = { Text("Amount") }
+                    label = { Text("Amount") },
+                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
-            Button(onClick = onConfirm) { Text("Save") }
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+            ) {
+                Text("Save", color = MaterialTheme.colorScheme.background) // Ensures contrast
+            }
         },
         dismissButton = {
-            Button(onClick = onDismiss) { Text("Cancel") }
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+            ) {
+                Text("Cancel", color = MaterialTheme.colorScheme.background) // Ensures contrast
+            }
         }
     )
 }
-
-@Composable
-fun YearSelection(selectedYear: Int, onYearSelected: (Int) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = "<", // Display '<' symbol
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.clickable {
-                onYearSelected(selectedYear - 1) // Go one year back
-            }
-        )
-        Spacer(modifier = Modifier.width(8.dp)) // Add some space between the arrows and the year
-        Text(
-            text = "$selectedYear", // Display the selected year
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.width(8.dp)) // Add space after the year
-        Text(
-            text = ">", // Display '>' symbol
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.clickable {
-                onYearSelected(selectedYear + 1) // Go one year forward
-            }
-        )
-    }
-}
-
 
 @Composable
 fun BudgetDonutChart(used: Float, total: Float) {
@@ -241,14 +311,14 @@ fun BudgetDonutChart(used: Float, total: Float) {
 
     Canvas(modifier = Modifier.size(50.dp)) {
         drawArc(
-            color = Color.Green,
+            color = Color(0xFF10B981),
             startAngle = -90f,
             sweepAngle = 360f * (usedPercentage / 100f),
             useCenter = false,
             style = Stroke(width = 8.dp.toPx())
         )
         drawArc(
-            color = Color.LightGray,
+            color = Color(0xFF374151),
             startAngle = -90f + (360f * (usedPercentage / 100f)),
             sweepAngle = 360f * ((100f - usedPercentage) / 100f),
             useCenter = false,
@@ -263,6 +333,32 @@ fun getRandomPaleColor(): Color {
     val blue = Random.nextInt(150, 255)
     return Color(red, green, blue, 255)
 }
+
+//@Composable
+//fun YearSelection(selectedYear: Int, onYearSelected: (Int) -> Unit) {
+//    Row(verticalAlignment = Alignment.CenterVertically) {
+//        Text(
+//            text = "<", // Display '<' symbol
+//            fontWeight = FontWeight.Bold,
+//            modifier = Modifier.clickable {
+//                onYearSelected(selectedYear - 1) // Go one year back
+//            }
+//        )
+//        Spacer(modifier = Modifier.width(8.dp)) // Add some space between the arrows and the year
+//        Text(
+//            text = "$selectedYear", // Display the selected year
+//            fontWeight = FontWeight.Bold
+//        )
+//        Spacer(modifier = Modifier.width(8.dp)) // Add space after the year
+//        Text(
+//            text = ">", // Display '>' symbol
+//            fontWeight = FontWeight.Bold,
+//            modifier = Modifier.clickable {
+//                onYearSelected(selectedYear + 1) // Go one year forward
+//            }
+//        )
+//    }
+//}
 
 @Preview(showBackground = true)
 @Composable
