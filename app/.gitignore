@@ -1,1 +1,11 @@
-/build
+# Ignore Google services file
+/app/google-services.json
+
+# Ignore build directories
+/build/
+
+# Other files/folders you want to ignore
+.idea/
+*.iml
+*.log
+*.tmp
