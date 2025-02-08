@@ -1,4 +1,4 @@
-package com.example.authapp
+package com.example.moneta.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -6,33 +6,37 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun SignUpScreen(navController: NavController) {
-    var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
+    val auth = FirebaseAuth.getInstance()
 
     // Placeholder for real sign up logic
     fun handleSignUp() {
-        if (username.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
+        if (email.isEmpty() || password.isEmpty()) {
             errorMessage = "Please fill in all fields"
-        } else if (password != confirmPassword) {
-            errorMessage = "Passwords do not match"
         } else {
-            // Proceed with the sign-up process, for now, navigate to the home screen
-            navController.navigate("expense_screen")
+            auth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        navController.navigate("sign_in_screen")
+                    } else {
+                        errorMessage = task.exception?.message ?: "Sign up failed"
+                    }
+                }
         }
     }
 
@@ -65,7 +69,7 @@ fun SignUpScreen(navController: NavController) {
                         letterSpacing = 2.sp
                     )
                 )
-        }
+            }
         }
 
         Text("Sign Up", style = MaterialTheme.typography.headlineSmall)
@@ -74,9 +78,9 @@ fun SignUpScreen(navController: NavController) {
 
         // Username input field
         TextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Username") },
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email") },
             modifier = Modifier.fillMaxWidth()
         )
 

@@ -16,6 +16,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,10 +27,14 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.authapp.SignInScreen
-import com.example.authapp.SignUpScreen
+import com.example.moneta.screens.SignInScreen
+import com.example.moneta.screens.SignUpScreen
 import com.example.moneta.screens.*
 import com.example.moneta.ui.theme.MonetaTheme
+import com.google.firebase.Firebase
+import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.initialize
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector?) {
     object SignIn: Screen("sign_in_screen", "Sign In", null)
@@ -50,27 +55,36 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            var isDarkTheme by remember { mutableStateOf(false) } // Store theme state
 
-            MonetaTheme(darkTheme = isDarkTheme) { // Apply the theme
+        setContent {
+            val auth = FirebaseAuth.getInstance()
+            val navController = rememberNavController()
+            var isDarkTheme by remember { mutableStateOf(false) }
+
+            LaunchedEffect(auth.currentUser) {
+                if (auth.currentUser != null) {
+                    navController.navigate(Screen.Expense.route) {
+                        popUpTo(0) // Clear back stack
+                    }
+                } else {
+                    navController.navigate(Screen.SignIn.route) {
+                        popUpTo(0)
+                    }
+                }
+            }
+
+            MonetaTheme(darkTheme = isDarkTheme) {
                 Surface(
-                    modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val navController = rememberNavController()
-                    MainScreen(
-                        navController = navController,
-                        isDarkTheme = isDarkTheme,
-                        onThemeToggle = { newTheme ->
-                            isDarkTheme = newTheme // Toggle theme on switch click
-                        }
-                    )
+                    MainScreen(navController, isDarkTheme, onThemeToggle = { isDarkTheme = it })
                 }
             }
         }
     }
 }
+
 
 @Composable
 fun MainScreen(
