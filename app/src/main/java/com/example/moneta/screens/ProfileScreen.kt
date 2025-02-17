@@ -15,7 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -24,11 +23,19 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 
 @Composable
 fun ProfileScreen(navController: NavController, isDarkTheme: Boolean, onThemeToggle: (Boolean) -> Unit) {
     val auth = FirebaseAuth.getInstance()
-    val currentUser = auth.currentUser
+    var currentUser by remember { mutableStateOf<FirebaseUser?>(auth.currentUser) }
+
+    // Reload user info when the screen is recomposed
+    LaunchedEffect(Unit) {
+        auth.currentUser?.reload()?.addOnCompleteListener {
+            currentUser = auth.currentUser
+        }
+    }
 
     var userName by remember { mutableStateOf(currentUser?.displayName ?: "User") }
     var userEmail by remember { mutableStateOf(currentUser?.email ?: "No email available") }

@@ -34,6 +34,8 @@ import com.example.moneta.ui.theme.MonetaTheme
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.initialize
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector?) {
@@ -55,6 +57,17 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize Firebase
+        FirebaseApp.initializeApp(this)
+
+        // Enable Firebase Authentication offline persistence
+        FirebaseAuth.getInstance().useAppLanguage()
+
+        // Enable Firestore offline persistence if you're using Firestore
+        FirebaseFirestore.getInstance().firestoreSettings = FirebaseFirestoreSettings.Builder()
+            .setPersistenceEnabled(true)
+            .build()
 
         setContent {
             val auth = FirebaseAuth.getInstance()
