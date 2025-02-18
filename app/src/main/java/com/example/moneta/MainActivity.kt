@@ -31,12 +31,10 @@ import com.example.moneta.screens.SignInScreen
 import com.example.moneta.screens.SignUpScreen
 import com.example.moneta.screens.*
 import com.example.moneta.ui.theme.MonetaTheme
-import com.google.firebase.Firebase
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
-import com.google.firebase.initialize
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector?) {
     object SignIn: Screen("sign_in_screen", "Sign In", null)
@@ -52,6 +50,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
     )
     object AddReminder: Screen("add_reminder_screen", "Add Reminder", Icons.Default.Add)
     object EditProfile: Screen("edit_profile_screen","Edit Profile", Icons.Default.Edit)
+    object FinancialNews: Screen("financial_news_screen", "Financial News", Icons.Filled.Public) // Added
 }
 
 class MainActivity : ComponentActivity() {
@@ -105,7 +104,7 @@ fun MainScreen(
     isDarkTheme: Boolean,
     onThemeToggle: (Boolean) -> Unit // Callback to toggle theme
 ) {
-    val screens = listOf(Screen.Expense, Screen.Report, Screen.Budget, Screen.Profile)
+    val screens = listOf(Screen.Expense, Screen.Report, Screen.Budget, Screen.Profile, Screen.FinancialNews)
     var selectedScreen by remember { mutableStateOf(Screen.Expense.route) }
     val reminders = remember { mutableStateOf<List<Triple<String, String, String>>>(emptyList()) }
 
@@ -171,6 +170,10 @@ fun MainScreen(
             composable(Screen.EditProfile.route){
                 selectedScreen = Screen.EditProfile.route
                 EditProfileScreen(navController)
+            }
+            composable(Screen.FinancialNews.route) {
+                selectedScreen = Screen.FinancialNews.route
+                FinancialNewsScreen(navController) // Financial News Screen
             }
         }
     }
