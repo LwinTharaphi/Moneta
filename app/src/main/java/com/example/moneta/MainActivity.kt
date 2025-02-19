@@ -1,5 +1,6 @@
 package com.example.moneta
 
+import EditReminderScreen
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -31,9 +32,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.moneta.screens.SignInScreen
 import com.example.moneta.screens.SignUpScreen
 import com.example.moneta.screens.*
@@ -58,6 +61,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
     object AddReminder: Screen("add_reminder_screen", "Add Reminder", Icons.Default.Add)
     object EditProfile: Screen("edit_profile_screen","Edit Profile", Icons.Default.Edit)
     object FinancialNews: Screen("financial_news_screen", "Financial News", Icons.Filled.Public) // Added
+    object EditReminderScreen: Screen("edit_reminder_screen/{reminderId}", "Edit Reminder", Icons.Default.Edit)
 }
 
 class MainActivity : ComponentActivity() {
@@ -207,6 +211,16 @@ fun MainScreen(
                 selectedScreen = Screen.FinancialNews.route
                 FinancialNewsScreen(navController) // Financial News Screen
             }
+            composable(
+                route = "edit_reminder_screen/{reminderId}",
+                arguments = listOf(navArgument("reminderId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                selectedScreen = Screen.EditReminderScreen.route
+                val reminderId = backStackEntry.arguments?.getString("reminderId") ?: ""
+                EditReminderScreen(navController, reminderId)
+            }
+
+
         }
     }
 }

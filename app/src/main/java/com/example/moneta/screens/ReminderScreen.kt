@@ -97,7 +97,7 @@ fun ReminderScreen(navController: NavController){
             } else {
                 LazyColumn {
                     items(reminders.value) { reminder ->
-                        ReminderCard(reminder)
+                        ReminderCard(reminder,navController)
                     }
                 }
             }
@@ -114,11 +114,14 @@ fun ReminderScreenPreview(){
 }
 
 @Composable
-fun ReminderCard(reminder: Reminder){
+fun ReminderCard(reminder: Reminder, navController: NavController){
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),
+            .padding(8.dp)
+            .clickable {
+                navController.navigate("edit_reminder_screen/${reminder.id}")
+            },
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
