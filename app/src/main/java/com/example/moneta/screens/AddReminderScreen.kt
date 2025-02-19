@@ -38,6 +38,8 @@ import androidx.navigation.NavController
 import com.example.moneta.database.ReminderDatabase
 import com.example.moneta.model.Reminder
 import com.example.moneta.utils.FCMHelper
+import com.example.moneta.utils.NotificationScheduler
+import com.example.moneta.utils.NotificationScheduler.calculateTimeInMillis
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -134,6 +136,13 @@ fun AddReminderScreen(navController: NavController){
                             ReminderDatabase.addReminder(newReminder,userId.toString())
                         }
                         FCMHelper.sendReminderNotification(context,reminderName,"Time to record your accounts")
+                        val timeInMillis = calculateTimeInMillis(selectedTime)
+                        NotificationScheduler.scheduleReminder(
+                            context,
+                            timeInMillis,
+                            reminderName,
+                            "Time to record your accounts"
+                        )
 
                         navController.popBackStack()
                     }

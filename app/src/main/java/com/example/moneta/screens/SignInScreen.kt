@@ -1,5 +1,6 @@
 package com.example.moneta.screens
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -14,7 +15,11 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.firestore
+import com.google.firebase.messaging.FirebaseMessaging
 
 @Composable
 fun SignInScreen(navController: NavController) {
@@ -32,6 +37,46 @@ fun SignInScreen(navController: NavController) {
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
                         val userId = auth.currentUser?.uid
+                        FirebaseMessaging.getInstance().token
+                            .addOnCompleteListener { tokenTask ->
+                                if (tokenTask.isSuccessful){
+                                    val token = tokenTask.result
+                                    Log.d("FCM token","User Token: $token")
+                                    // Store FCM token in Firestore
+                                    userId?.let { uid ->
+                                        val userRef = Firebase.firestore.collection("users").document(uid)
+                                        // Check if document exists before updating
+                                        userRef.get()
+                                            .addOnSuccessListener { document ->
+                                                if (document.exists()) {
+                                                    // Document exists, update the FCM token
+                                                    userRef.update("fcmToken", token)
+                                                        .addOnSuccessListener {
+                                                            Log.d("FCM", "FCM token updated successfully")
+                                                        }
+                                                        .addOnFailureListener { e ->
+                                                            Log.e("FCM", "Error updating FCM token", e)
+                                                        }
+                                                } else {
+                                                    // Document does not exist, create a new one
+                                                    val newUser = hashMapOf("fcmToken" to token)
+                                                    userRef.set(newUser)
+                                                        .addOnSuccessListener {
+                                                            Log.d("FCM", "FCM token added to new user document")
+                                                        }
+                                                        .addOnFailureListener { e ->
+                                                            Log.e("FCM", "Error creating new user document", e)
+                                                        }
+                                                }
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Log.e("FCM", "Error updating FCM token", e)
+                                            }
+                                    }
+                                } else {
+                                    Log.e("FCM token", "Failed to get FCM token", tokenTask.exception)
+                                }
+                            }
                         navController.navigate("expense_screen")
                     } else {
                         errorMessage = task.exception?.message ?: "Sign in failed"
