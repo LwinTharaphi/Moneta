@@ -3,14 +3,14 @@ package com.example.moneta.screens
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -29,12 +29,31 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import kotlin.random.Random
 
-data class BudgetData(val month: String, val year: Int, val total: Float, val used: Float)
+// Data class for Budget
+data class BudgetData(
+    val month: String = "",
+    val year: Int = 0,
+    val total: Float = 0f,
+    val used: Float = 0f
+) {
+    constructor() : this("", 0, 0f, 0f) // Required for Firestore
+}
 
 @Composable
 fun BudgetScreen(navController: NavController) {
+    val db = Firebase.firestore
+    val auth = FirebaseAuth.getInstance()
+    val userId = auth.currentUser?.uid // Get the current user ID from Firebase Authentication
+
+    if (userId == null) {
+        navController.navigate("login_screen")
+        return
+    }
     val usedAmount = 6000f
     var budgets by remember { mutableStateOf(listOf<BudgetData>()) }
     var showDialog by remember { mutableStateOf(false) }
@@ -42,12 +61,24 @@ fun BudgetScreen(navController: NavController) {
     var selectedBudget by remember { mutableStateOf<BudgetData?>(null) }
     var newMonth by remember { mutableStateOf("") }
     var newAmount by remember { mutableStateOf("") }
-    var showDateDialog by remember { mutableStateOf(false) }
-    var selectedMonthYear by remember { mutableStateOf(getCurrentMonthYear()) }
+    var showYearDialog by remember { mutableStateOf(false) }
     var selectedYear by remember { mutableIntStateOf(2025) }
 
+    // Fetch budgets for the selected year
+    LaunchedEffect(selectedYear) {
+        db.collection("users").document(userId).collection("budgets")
+            .whereEqualTo("year", selectedYear)
+            .get()
+            .addOnSuccessListener { result ->
+                budgets = result.toObjects(BudgetData::class.java)
+            }
+            .addOnFailureListener { e ->
+                // Handle the error
+            }
+    }
+
     Column(modifier = Modifier.padding(16.dp)) {
-        // Top Row with "Budget" on the left and Month-Year on the right
+        // Top Row with "Budget" on the left and Year on the right
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -55,17 +86,17 @@ fun BudgetScreen(navController: NavController) {
         ) {
             Text(text = "Budget", style = MaterialTheme.typography.headlineSmall)
 
-            // Month-Year selection on the right
+            // Year selection on the right
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { showDateDialog = true }
+                modifier = Modifier.clickable { showYearDialog = true }
             ) {
                 Text(
-                    text = selectedMonthYear,
+                    text = "$selectedYear",
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(end = 8.dp)
                 )
-                Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = "Expand Month-Year Picker")
+                Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = "Expand Year Picker")
             }
         }
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -87,23 +118,32 @@ fun BudgetScreen(navController: NavController) {
                         editDialog = true
                     },
                     onDelete = {
-                        budgets = budgets.filterNot { it == budget }
+                        db.collection("users").document(userId).collection("budgets")
+                            .document(budget.month + budget.year) // Use a unique ID
+                            .delete()
+                            .addOnSuccessListener {
+                                budgets = budgets.filterNot { it == budget }
+                            }
+                            .addOnFailureListener { e ->
+                                // Handle the error
+                            }
                     }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
-    FloatingActionButton(
+
+        FloatingActionButton(
             onClick = { showDialog = true },
             modifier = Modifier
                 .padding(16.dp)
                 .align(Alignment.End),
-            containerColor = MaterialTheme.colorScheme.secondary // Uses Emerald Green dynamically
+            containerColor = MaterialTheme.colorScheme.secondary
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
                 contentDescription = "Add",
-                tint = MaterialTheme.colorScheme.background // Ensures contrast
+                tint = MaterialTheme.colorScheme.background
             )
         }
     }
@@ -116,15 +156,23 @@ fun BudgetScreen(navController: NavController) {
             onMonthChange = { newMonth = it },
             onAmountChange = { newAmount = it },
             onConfirm = {
-                budgets = budgets + BudgetData(
+                val budget = BudgetData(
                     newMonth,
                     selectedYear,
                     newAmount.toFloatOrNull() ?: 0f,
                     usedAmount
                 )
-                newMonth = ""
-                newAmount = ""
-                showDialog = false
+                db.collection("users").document(userId).collection("budgets")
+                    .add(budget)
+                    .addOnSuccessListener {
+                        budgets = budgets + budget
+                        newMonth = ""
+                        newAmount = ""
+                        showDialog = false
+                    }
+                    .addOnFailureListener { e ->
+                        // Handle the error
+                    }
             },
             onDismiss = { showDialog = false }
         )
@@ -138,26 +186,39 @@ fun BudgetScreen(navController: NavController) {
             onMonthChange = { newMonth = it },
             onAmountChange = { newAmount = it },
             onConfirm = {
-                budgets = budgets.map { budget ->
-                    if (budget == selectedBudget) budget.copy(month = newMonth, total = newAmount.toFloatOrNull() ?: 0f)
-                    else budget
+                val updatedBudget = selectedBudget?.copy(
+                    month = newMonth,
+                    total = newAmount.toFloatOrNull() ?: 0f
+                )
+                if (updatedBudget != null) {
+                    db.collection("users").document(userId).collection("budgets")
+                        .document(updatedBudget.month + updatedBudget.year) // Use a unique ID
+                        .set(updatedBudget)
+                        .addOnSuccessListener {
+                            budgets = budgets.map { budget ->
+                                if (budget == selectedBudget) updatedBudget else budget
+                            }
+                            newMonth = ""
+                            newAmount = ""
+                            editDialog = false
+                        }
+                        .addOnFailureListener { e ->
+                            // Handle the error
+                        }
                 }
-                newMonth = ""
-                newAmount = ""
-                editDialog = false
             },
             onDismiss = { editDialog = false }
         )
     }
 
-    // Dialog for Month-Year Picker
-    if (showDateDialog) {
-        MonthYearPickerDialog(
-            currentSelection = selectedMonthYear,
-            onDismiss = { showDateDialog = false },
-            onMonthSelected = { newMonthYear ->
-                newMonthYear.also { selectedMonthYear = it }
-                showDateDialog = false
+    // Year Picker Dialog
+    if (showYearDialog) {
+        YearPickerDialog(
+            currentYear = selectedYear,
+            onDismiss = { showYearDialog = false },
+            onYearSelected = { newYear ->
+                selectedYear = newYear
+                showYearDialog = false
             }
         )
     }
@@ -177,16 +238,13 @@ fun BudgetRow(budget: BudgetData, onEdit: () -> Unit, onDelete: () -> Unit) {
         BudgetDonutChart(used = budget.used, total = budget.total)
         Spacer(modifier = Modifier.width(16.dp))
 
-        // Column for month, total, and used
         Column(modifier = Modifier.weight(1f)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween, // Align text and icons to the ends
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(budget.month, fontWeight = FontWeight.Bold, color = Color.Black)
-
-                // Row for icons aligned to the right
                 Row(
                     horizontalArrangement = Arrangement.spacedBy((-24).dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -222,7 +280,7 @@ fun BudgetDialog(
 
     var expanded by remember { mutableStateOf(false) }
     var selectedMonth by remember { mutableStateOf(newMonth) }
-    var textFieldSize by remember { mutableStateOf(Size.Zero) } // Stores the width of the OutlinedTextField
+    var textFieldSize by remember { mutableStateOf(Size.Zero) }
     val density = LocalDensity.current
 
     AlertDialog(
@@ -230,15 +288,12 @@ fun BudgetDialog(
         title = { Text(title) },
         text = {
             Column {
-                // Month Selection Field (Styled like Amount Input)
-                Box(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                Box(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
                         value = selectedMonth.ifEmpty { "Select Month" },
-                        onValueChange = {}, // No manual input
+                        onValueChange = {},
                         label = { Text("Month") },
-                        readOnly = true, // Prevent keyboard input
+                        readOnly = true,
                         trailingIcon = {
                             Icon(
                                 imageVector = Icons.Default.ArrowDropDown,
@@ -249,17 +304,15 @@ fun BudgetDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .onGloballyPositioned { coordinates ->
-                                textFieldSize = coordinates.size.toSize() // Capture width of TextField
+                                textFieldSize = coordinates.size.toSize()
                             }
                             .clickable { expanded = !expanded }
                     )
 
-                    // Dropdown Menu for Month Selection
                     DropdownMenu(
                         expanded = expanded,
                         onDismissRequest = { expanded = false },
-                        modifier = Modifier
-                            .width(with(density) { textFieldSize.width.toDp() }) // Match width of TextField
+                        modifier = Modifier.width(with(density) { textFieldSize.width.toDp() })
                     ) {
                         months.forEach { month ->
                             DropdownMenuItem(
@@ -276,7 +329,6 @@ fun BudgetDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Amount Input Field
                 OutlinedTextField(
                     value = newAmount,
                     onValueChange = onAmountChange,
@@ -287,19 +339,13 @@ fun BudgetDialog(
             }
         },
         confirmButton = {
-            Button(
-                onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-            ) {
-                Text("Save", color = MaterialTheme.colorScheme.background) // Ensures contrast
+            Button(onClick = onConfirm) {
+                Text("Save")
             }
         },
         dismissButton = {
-            Button(
-                onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-            ) {
-                Text("Cancel", color = MaterialTheme.colorScheme.background) // Ensures contrast
+            Button(onClick = onDismiss) {
+                Text("Cancel")
             }
         }
     )
@@ -327,38 +373,53 @@ fun BudgetDonutChart(used: Float, total: Float) {
     }
 }
 
+@Composable
+fun YearPickerDialog(
+    currentYear: Int,
+    onDismiss: () -> Unit,
+    onYearSelected: (Int) -> Unit
+) {
+    var selectedYear by remember { mutableIntStateOf(currentYear) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Select Year") },
+        text = {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { selectedYear-- }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Previous Year")
+                    }
+                    Text(text = "$selectedYear", style = MaterialTheme.typography.headlineMedium)
+                    IconButton(onClick = { selectedYear++ }) {
+                        Icon(Icons.Default.ArrowForward, contentDescription = "Next Year")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onYearSelected(selectedYear) }) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
 fun getRandomPaleColor(): Color {
     val red = Random.nextInt(150, 255)
     val green = Random.nextInt(150, 255)
     val blue = Random.nextInt(150, 255)
     return Color(red, green, blue, 255)
 }
-
-//@Composable
-//fun YearSelection(selectedYear: Int, onYearSelected: (Int) -> Unit) {
-//    Row(verticalAlignment = Alignment.CenterVertically) {
-//        Text(
-//            text = "<", // Display '<' symbol
-//            fontWeight = FontWeight.Bold,
-//            modifier = Modifier.clickable {
-//                onYearSelected(selectedYear - 1) // Go one year back
-//            }
-//        )
-//        Spacer(modifier = Modifier.width(8.dp)) // Add some space between the arrows and the year
-//        Text(
-//            text = "$selectedYear", // Display the selected year
-//            fontWeight = FontWeight.Bold
-//        )
-//        Spacer(modifier = Modifier.width(8.dp)) // Add space after the year
-//        Text(
-//            text = ">", // Display '>' symbol
-//            fontWeight = FontWeight.Bold,
-//            modifier = Modifier.clickable {
-//                onYearSelected(selectedYear + 1) // Go one year forward
-//            }
-//        )
-//    }
-//}
 
 @Preview(showBackground = true)
 @Composable
