@@ -31,6 +31,7 @@ fun SignInScreen(navController: NavController) {
             auth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
+                        val userId = auth.currentUser?.uid
                         navController.navigate("expense_screen")
                     } else {
                         errorMessage = task.exception?.message ?: "Sign in failed"

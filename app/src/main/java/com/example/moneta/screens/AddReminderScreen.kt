@@ -17,14 +17,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.*
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -33,16 +31,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.focusModifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.moneta.database.ReminderDatabase
 import com.example.moneta.model.Reminder
+import com.example.moneta.utils.FCMHelper
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 import java.util.Calendar
+import java.util.UUID
+import kotlin.coroutines.coroutineContext
 
 @Composable
-fun AddReminderScreen(navController: NavController, reminders: MutableState<List<Triple<String, String, String>>>){
+fun AddReminderScreen(navController: NavController){
     var reminderName by remember { mutableStateOf("") }
     var selectedTime by remember { mutableStateOf("8:00 PM") }
     var repeatOption by remember { mutableStateOf("Daily") }
@@ -50,6 +53,8 @@ fun AddReminderScreen(navController: NavController, reminders: MutableState<List
     var showRepeatDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val calendar = Calendar.getInstance()
+    val coroutineScope = rememberCoroutineScope()
+    val userId = FirebaseAuth.getInstance().currentUser?.uid
 
     val timePickerDialog = TimePickerDialog(
         context,
@@ -124,7 +129,12 @@ fun AddReminderScreen(navController: NavController, reminders: MutableState<List
                     if (reminderName.isEmpty()) {
                         showDialog = true
                     } else {
-                        reminders.value += Triple(reminderName, selectedTime, repeatOption)
+                        val newReminder = Reminder(UUID.randomUUID().toString(),reminderName,selectedTime,repeatOption)
+                        coroutineScope.launch {
+                            ReminderDatabase.addReminder(newReminder,userId.toString())
+                        }
+                        FCMHelper.sendReminderNotification(context,reminderName,"Time to record your accounts")
+
                         navController.popBackStack()
                     }
                 }

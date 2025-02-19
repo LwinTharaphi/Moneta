@@ -1,6 +1,7 @@
 package com.example.moneta.screens
 
 import android.graphics.drawable.Icon
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -35,11 +36,32 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.example.moneta.database.ReminderDatabase
 import com.example.moneta.model.Reminder
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
 
 @Composable
-fun ReminderScreen(navController: NavController, reminders: MutableState<List<Triple<String, String, String>>>){
-//    val reminders by remember { mutableStateOf(listOf<Triple<String,String,String>>()) }
+fun ReminderScreen(navController: NavController){
+    val auth = FirebaseAuth.getInstance()
+    val userId = auth.currentUser?.uid
+    val reminders = remember { mutableStateOf<List<Reminder>>(emptyList()) }
+    val coroutineScope = rememberCoroutineScope()
+    val db = FirebaseFirestore.getInstance()
+    if (userId == null){
+        navController.navigate("sign_in_screen") {
+            popUpTo(0)
+        }
+    } else {
+        LaunchedEffect(userId) {
+            coroutineScope.launch {
+                val fetchedReminders = ReminderDatabase.getReminder(userId)
+                reminders.value = fetchedReminders
+            }
+        }
+    }
+
     Scaffold { padding ->
         Column(
             modifier = Modifier
@@ -75,7 +97,7 @@ fun ReminderScreen(navController: NavController, reminders: MutableState<List<Tr
             } else {
                 LazyColumn {
                     items(reminders.value) { reminder ->
-                        ReminderCard(name= reminder.first, time = reminder.second, repeat = reminder.third)
+                        ReminderCard(reminder)
                     }
                 }
             }
@@ -88,12 +110,11 @@ fun ReminderScreen(navController: NavController, reminders: MutableState<List<Tr
 @Composable
 fun ReminderScreenPreview(){
     val navController = rememberNavController()
-    val reminders = remember { mutableStateOf<List<Triple<String, String, String>>>(emptyList()) }
-    ReminderScreen(navController,reminders)
+    ReminderScreen(navController)
 }
 
 @Composable
-fun ReminderCard(name:String,time: String, repeat: String){
+fun ReminderCard(reminder: Reminder){
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -110,7 +131,7 @@ fun ReminderCard(name:String,time: String, repeat: String){
                 modifier = Modifier.fillMaxWidth()
             ){
                 Icon(imageVector = Icons.Filled.Face, contentDescription = "Icon")
-                Text(name, fontSize = 16.sp, fontWeight =  FontWeight.Bold)
+                Text(reminder.name, fontSize = 16.sp, fontWeight =  FontWeight.Bold)
             }
             Text("Time to record your accounts", fontSize = 12.sp)
             Text("Record one now", fontSize = 12.sp)
@@ -119,9 +140,9 @@ fun ReminderCard(name:String,time: String, repeat: String){
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ){
-                Text(time, fontSize = 12.sp)
+                Text(reminder.time, fontSize = 12.sp)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(repeat, fontSize = 12.sp)
+                Text(reminder.repeat, fontSize = 12.sp)
             }
         }
     }

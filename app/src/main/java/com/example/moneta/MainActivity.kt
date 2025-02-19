@@ -161,11 +161,11 @@ fun MainScreen(
             }
             composable(Screen.Reminder.route) {
                 selectedScreen = Screen.Reminder.route
-                ReminderScreen(navController, reminders) // Reminder Screen
+                ReminderScreen(navController) // Reminder Screen
             }
             composable(Screen.AddReminder.route) {
                 selectedScreen = Screen.AddReminder.route
-                AddReminderScreen(navController, reminders) // Add Reminder Screen
+                AddReminderScreen(navController) // Add Reminder Screen
             }
             composable(Screen.EditProfile.route){
                 selectedScreen = Screen.EditProfile.route
