@@ -36,12 +36,13 @@ import kotlin.random.Random
 
 // Data class for Budget
 data class BudgetData(
+    val id: String = "", // Add this field to store the document ID
     val month: String = "",
     val year: Int = 0,
     val total: Float = 0f,
     val used: Float = 0f
 ) {
-    constructor() : this("", 0, 0f, 0f) // Required for Firestore
+    constructor() : this("", "", 0, 0f, 0f) // Required for Firestore
 }
 
 @Composable
@@ -70,7 +71,9 @@ fun BudgetScreen(navController: NavController) {
             .whereEqualTo("year", selectedYear)
             .get()
             .addOnSuccessListener { result ->
-                budgets = result.toObjects(BudgetData::class.java)
+                budgets = result.documents.map { document ->
+                    document.toObject(BudgetData::class.java)?.copy(id = document.id) ?: BudgetData()
+                }
             }
             .addOnFailureListener { e ->
                 // Handle the error
@@ -119,7 +122,7 @@ fun BudgetScreen(navController: NavController) {
                     },
                     onDelete = {
                         db.collection("users").document(userId).collection("budgets")
-                            .document(budget.month + budget.year) // Use a unique ID
+                            .document(budget.id) // Use the document ID
                             .delete()
                             .addOnSuccessListener {
                                 budgets = budgets.filterNot { it == budget }
@@ -157,10 +160,10 @@ fun BudgetScreen(navController: NavController) {
             onAmountChange = { newAmount = it },
             onConfirm = {
                 val budget = BudgetData(
-                    newMonth,
-                    selectedYear,
-                    newAmount.toFloatOrNull() ?: 0f,
-                    usedAmount
+                    month = newMonth,
+                    year = selectedYear,
+                    total = newAmount.toFloatOrNull() ?: 0f,
+                    used = usedAmount
                 )
                 db.collection("users").document(userId).collection("budgets")
                     .add(budget)
@@ -192,7 +195,7 @@ fun BudgetScreen(navController: NavController) {
                 )
                 if (updatedBudget != null) {
                     db.collection("users").document(userId).collection("budgets")
-                        .document(updatedBudget.month + updatedBudget.year) // Use a unique ID
+                        .document(updatedBudget.id) // Use the document ID
                         .set(updatedBudget)
                         .addOnSuccessListener {
                             budgets = budgets.map { budget ->
