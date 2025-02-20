@@ -1,8 +1,16 @@
 package com.example.moneta.model
 
-data class Expense (
-    val id: Int,
+import java.util.Date
+
+enum class ExpenseCategory {
+    Dining, Transport, Beverages, Groceries, Entertainment, Shopping, Other
+}
+
+data class Expense(
+    val id: String = "",  // Firestore auto-generated document ID
     val description: String,
     val amount: Float,
-    val date: String,
-    )
+    val date: Date,
+    val category: ExpenseCategory, // Now using ENUM instead of String
+    val imageUri: String? = null // ✅ New field for storing the image URI
+)
