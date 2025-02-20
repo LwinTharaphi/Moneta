@@ -12,5 +12,6 @@ data class Expense(
     val amount: Float,
     val date: Date,
     val category: ExpenseCategory, // Now using ENUM instead of String
-    val imageUri: String? = null // ✅ New field for storing the image URI
+    val imageUris: List<String> = emptyList()
+//    val imageUri: String? = null // ✅ New field for storing the image URI
 )

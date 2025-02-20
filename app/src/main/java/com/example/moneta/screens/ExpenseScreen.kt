@@ -9,13 +9,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
@@ -192,7 +195,7 @@ fun ExpenseScreen(navController: NavController) {
     if (showDialog) {
         ExpenseDialog(
             onDismiss = { showDialog = false },
-            onAddExpense = { description, amount, category, imageUri -> // ✅ Updated to include imageUri
+            onAddExpense = { description, amount, category, imageUris -> // ✅ Updated to handle multiple images
                 expensesByDate = expensesByDate.toMutableMap().apply {
                     val newExpenses = this[selectedDate]?.toMutableList() ?: mutableListOf()
                     newExpenses.add(
@@ -201,7 +204,7 @@ fun ExpenseScreen(navController: NavController) {
                             amount = amount,
                             date = selectedDate,
                             category = category,
-                            imageUri = imageUri // ✅ Store the image URI
+                            imageUris = imageUris // ✅ Store the list of image URIs
                         )
                     )
                     this[selectedDate] = newExpenses
@@ -210,8 +213,6 @@ fun ExpenseScreen(navController: NavController) {
             }
         )
     }
-
-
 
 
     // Expense Bottom Sheet
@@ -237,7 +238,7 @@ fun ExpenseScreen(navController: NavController) {
         ExpenseEditDialog(
             expense = selectedExpense!!,
             onDismiss = { showEditDialog = false },
-            onConfirm = { updatedDescription, updatedAmount, updatedCategory, updatedImageUri -> // ✅ Now includes imageUri
+            onConfirm = { updatedDescription, updatedAmount, updatedCategory, updatedImageUris -> // ✅ Now includes updated images
                 expensesByDate = expensesByDate.toMutableMap().apply {
                     this[selectedDate] = this[selectedDate]?.map {
                         if (it == selectedExpense) {
@@ -246,7 +247,7 @@ fun ExpenseScreen(navController: NavController) {
                                 amount = updatedAmount, // ✅ Updated Amount
                                 date = selectedDate,
                                 category = updatedCategory, // ✅ Updated Category
-                                imageUri = updatedImageUri // ✅ Store updated image URI
+                                imageUris = updatedImageUris // ✅ Updated Images
                             )
                         } else it
                     }?.toMutableList() ?: mutableListOf()
@@ -283,33 +284,35 @@ fun ExpenseItem(expense: Expense, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = expense.description, // ✅ Expense description
+                text = expense.description,
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = MaterialTheme.colorScheme.onSurface
                 ),
-                modifier = Modifier.weight(1f) // Use remaining space
+                modifier = Modifier.weight(1f)
             )
             Text(
-                text = "฿${String.format(Locale.getDefault(), "%.2f", expense.amount)}", // ✅ Amount aligned right
+                text = "฿${String.format(Locale.getDefault(), "%.2f", expense.amount)}",
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
             )
         }
 
-        // ✅ Show Image Below (If Available)
-        expense.imageUri?.let {
+        // ✅ Show Multiple Images Below (If Available)
+        if (expense.imageUris.isNotEmpty()) {
             Spacer(modifier = Modifier.height(6.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Image(
-                    painter = rememberAsyncImagePainter(it),
-                    contentDescription = "Expense Image",
-                    modifier = Modifier
-                        .size(80.dp) // ✅ Keeps it small, aligned left
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color.LightGray)
-                )
+                items(expense.imageUris) { uri ->
+                    Image(
+                        painter = rememberAsyncImagePainter(uri),
+                        contentDescription = "Expense Image",
+                        modifier = Modifier
+                            .size(80.dp) // ✅ Keeps it small, aligned left
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.LightGray)
+                    )
+                }
             }
         }
 
@@ -317,26 +320,25 @@ fun ExpenseItem(expense: Expense, onClick: () -> Unit) {
     }
 }
 
-
 // Expense Dialog
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpenseDialog(
     onDismiss: () -> Unit,
-    onAddExpense: (String, Float, ExpenseCategory, String?) -> Unit // ✅ Add imageUri parameter
+    onAddExpense: (String, Float, ExpenseCategory, List<String>) -> Unit // ✅ Changed imageUri to List<String>
 ) {
     var description by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf(ExpenseCategory.Dining) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
-    var imageUri by remember { mutableStateOf<String?>(null) } // ✅ Store selected image
+    var imageUris by remember { mutableStateOf<List<String>>(emptyList()) } // ✅ Store multiple images
 
     val categories = ExpenseCategory.entries
 
-    // ✅ Image Picker Launcher
+    // ✅ Image Picker Launcher (Allows multiple selection)
     val imagePickerLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            imageUri = uri?.toString()
+        rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+            imageUris = uris.map { it.toString() } // Convert URIs to Strings
         }
 
     AlertDialog(
@@ -346,7 +348,7 @@ fun ExpenseDialog(
                 onClick = {
                     val amountFloat = amount.toFloatOrNull() ?: 0f
                     if (description.isNotEmpty() && amountFloat > 0f) {
-                        onAddExpense(description, amountFloat, selectedCategory, imageUri)
+                        onAddExpense(description, amountFloat, selectedCategory, imageUris) // ✅ Pass multiple images
                         onDismiss()
                     }
                 },
@@ -410,27 +412,32 @@ fun ExpenseDialog(
                     }
                 }
 
-                // ✅ Image Picker Section
+                // ✅ Image Picker Section (Supports Multiple Images)
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    imageUri?.let {
-                        Image(
-                            painter = rememberAsyncImagePainter(it),
-                            contentDescription = "Selected Image",
-                            modifier = Modifier
-                                .size(100.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color.LightGray)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
+                    // ✅ Display Selected Images in a Row
+                    LazyRow {
+                        items(imageUris) { uri ->
+                            Image(
+                                painter = rememberAsyncImagePainter(uri),
+                                contentDescription = "Selected Image",
+                                modifier = Modifier
+                                    .size(80.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color.LightGray)
+                                    .padding(end = 8.dp)
+                            )
+                        }
                     }
 
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     Button(onClick = { imagePickerLauncher.launch("image/*") }) {
-                        Icon(imageVector = Icons.Default.AddAPhoto, contentDescription = "Add Image")
+                        Icon(imageVector = Icons.Default.AddAPhoto, contentDescription = "Pick Images")
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Pick Image")
+                        Text("Pick Images")
                     }
                 }
             }
@@ -459,16 +466,23 @@ fun ExpenseBottomSheet(
             Text("Expense Details", style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(12.dp))
 
-            // ✅ Show Image if Available
-            expense.imageUri?.let { uri ->
-                Image(
-                    painter = rememberAsyncImagePainter(uri),
-                    contentDescription = "Expense Image",
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color.LightGray)
-                )
+            // ✅ Show Images if Available
+            if (expense.imageUris.isNotEmpty()) {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(expense.imageUris) { uri ->
+                        Image(
+                            painter = rememberAsyncImagePainter(uri),
+                            contentDescription = "Expense Image",
+                            modifier = Modifier
+                                .size(100.dp) // ✅ Fixed Size
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.LightGray)
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
@@ -506,7 +520,7 @@ fun ExpenseBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                Button(onClick = onEdit, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
+                Button(onClick = onEdit, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)) {
                     Text("Edit")
                 }
                 Button(onClick = onDelete, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)) {
@@ -519,25 +533,27 @@ fun ExpenseBottomSheet(
     }
 }
 
+@SuppressLint("MutableCollectionMutableState")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpenseEditDialog(
     expense: Expense,
     onDismiss: () -> Unit,
-    onConfirm: (String, Float, ExpenseCategory, String?) -> Unit // ✅ Now includes imageUri
+    onConfirm: (String, Float, ExpenseCategory, List<String>) -> Unit // ✅ Updated to accept List<String> for images
 ) {
     var description by remember { mutableStateOf(expense.description) }
     var amount by remember { mutableStateOf(expense.amount.toString()) }
     var selectedCategory by remember { mutableStateOf(expense.category) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
-    var imageUri by remember { mutableStateOf(expense.imageUri) } // ✅ Store the selected image
+    var imageUris by remember { mutableStateOf(expense.imageUris.toMutableList()) } // ✅ Stores multiple images
 
     val categories = ExpenseCategory.entries
 
-    // ✅ Image Picker Launcher
+    // ✅ Image Picker Launcher (Allows Multiple Selection)
     val imagePickerLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            imageUri = uri?.toString()
+        rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+            imageUris =
+                (imageUris + uris.map { it.toString() }).toMutableList() // ✅ Append new images
         }
 
     AlertDialog(
@@ -547,7 +563,7 @@ fun ExpenseEditDialog(
                 onClick = {
                     val updatedAmount = amount.toFloatOrNull() ?: 0f
                     if (description.isNotEmpty() && updatedAmount > 0f) {
-                        onConfirm(description, updatedAmount, selectedCategory, imageUri)
+                        onConfirm(description, updatedAmount, selectedCategory, imageUris) // ✅ Pass updated image list
                         onDismiss()
                     }
                 },
@@ -611,44 +627,50 @@ fun ExpenseEditDialog(
                     }
                 }
 
-                // ✅ Image Picker Section
+                // ✅ Image Picker Section (Supports Multiple Images)
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    imageUri?.let {
-                        Image(
-                            painter = rememberAsyncImagePainter(it),
-                            contentDescription = "Selected Image",
-                            modifier = Modifier
-                                .size(100.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color.LightGray)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // ✅ Remove Image Button
-                        Button(
-                            onClick = { imageUri = null },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                        ) {
-                            Icon(imageVector = Icons.Default.Delete, contentDescription = "Remove Image")
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Remove Image")
+                    // ✅ Display Selected Images in a Scrollable Row with Remove Button
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        items(imageUris) { uri ->
+                            Box {
+                                Image(
+                                    painter = rememberAsyncImagePainter(uri),
+                                    contentDescription = "Expense Image",
+                                    modifier = Modifier
+                                        .size(100.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color.LightGray)
+                                )
+                                IconButton(
+                                    onClick = { imageUris = (imageUris - uri).toMutableList() }, // ✅ Remove Image
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .background(Color.Red, shape = CircleShape)
+                                        .align(Alignment.TopEnd)
+                                ) {
+                                    Icon(Icons.Default.Close, contentDescription = "Remove", tint = Color.White)
+                                }
+                            }
                         }
                     }
 
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     Button(onClick = { imagePickerLauncher.launch("image/*") }) {
-                        Icon(imageVector = Icons.Default.AddAPhoto, contentDescription = "Change Image")
+                        Icon(imageVector = Icons.Default.AddAPhoto, contentDescription = "Pick Images")
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (imageUri != null) "Change Image" else "Pick Image")
+                        Text("Pick More Images")
                     }
                 }
             }
         }
     )
 }
-
 
 // Pie Chart
 @Composable
