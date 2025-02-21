@@ -11,7 +11,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Person
@@ -44,9 +46,9 @@ fun EditProfileScreen(navController: NavController) {
 
     var name by remember { mutableStateOf(TextFieldValue(currentUser?.displayName ?: "")) }
     var email by remember { mutableStateOf(TextFieldValue(currentUser?.email ?: "")) }
-    var password by remember { mutableStateOf(TextFieldValue("")) } // Leave blank initially
+    var password by remember { mutableStateOf(TextFieldValue("")) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
-    var passwordVisible by remember { mutableStateOf(false) }  // Toggle visibility of password
+    var passwordVisible by remember { mutableStateOf(false) }
 
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -63,9 +65,7 @@ fun EditProfileScreen(navController: NavController) {
         val profileUpdates = UserProfileChangeRequest.Builder()
             .setDisplayName(name.text)
             .apply {
-                selectedImageUri?.let { uri ->
-                    setPhotoUri(uri)
-                }
+                selectedImageUri?.let { uri -> setPhotoUri(uri) }
             }
             .build()
 
@@ -99,6 +99,7 @@ fun EditProfileScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())  // <-- Add vertical scrolling
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

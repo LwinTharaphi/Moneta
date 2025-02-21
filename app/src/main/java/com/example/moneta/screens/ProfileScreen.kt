@@ -4,7 +4,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -44,7 +46,8 @@ fun ProfileScreen(navController: NavController, isDarkTheme: Boolean, onThemeTog
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),  // Make it scrollable
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Profile", fontSize = 24.sp, fontWeight = FontWeight.Bold)
@@ -130,6 +133,8 @@ fun ProfileScreen(navController: NavController, isDarkTheme: Boolean, onThemeTog
             Spacer(modifier = Modifier.width(8.dp))
             Text("Sign Out")
         }
+
+        Spacer(modifier = Modifier.height(20.dp)) // Extra space at the bottom
     }
 }
 

@@ -27,6 +27,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.auth.FirebaseAuth
@@ -80,7 +82,11 @@ fun BudgetScreen(navController: NavController) {
             }
     }
 
-    Column(modifier = Modifier.padding(16.dp)) {
+    // Add vertical scroll modifier to make the content scrollable
+    Column(modifier = Modifier
+        .padding(16.dp)
+        .verticalScroll(rememberScrollState())) {
+
         // Top Row with "Budget" on the left and Year on the right
         Row(
             modifier = Modifier.fillMaxWidth(),
