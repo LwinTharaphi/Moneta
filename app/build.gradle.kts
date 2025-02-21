@@ -69,6 +69,8 @@ dependencies {
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.storage.ktx)
     implementation(libs.firebase.firestore.ktx)
+    // Firebase Coroutines Support (Recommended for MVVM)
+    implementation(libs.kotlinx.coroutines.play.services) // ✅ Helps with async Firestore calls
     implementation(libs.io.coil.kt.coil.compose)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
