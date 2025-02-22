@@ -53,8 +53,6 @@ dependencies {
     implementation(libs.firebase.messaging.ktx)
     implementation(libs.google.firebase.firestore.ktx)
     implementation(libs.androidx.work.runtime.ktx)
-    implementation(libs.firebase.admin)
-    implementation(libs.okhttp)
 
 
     // Use Material Icons Extended for more icons like PieChart, etc.
