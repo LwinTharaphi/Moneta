@@ -1,93 +1,128 @@
 package com.example.moneta.repository
 
+import android.util.Log
 import com.example.moneta.model.Expense
+import com.example.moneta.model.FirestoreExpense
+import com.example.moneta.model.toFirestoreExpense
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.firestore.toObject
+import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import java.text.SimpleDateFormat
+import java.util.*
 import java.util.UUID
 
 class ExpenseRepository {
 
-    private val firestore = FirebaseFirestore.getInstance()
-    private val storage = FirebaseStorage.getInstance().reference
-    private val expensesCollection = firestore.collection("expenses") // ✅ Firestore reference
+    private val db = FirebaseFirestore.getInstance()
+    private val auth = FirebaseAuth.getInstance()
+    private val userId: String?
+        get() = auth.currentUser?.uid
 
-    private val _expenses = MutableStateFlow<List<Expense>>(emptyList())
-    val expenses: StateFlow<List<Expense>> = _expenses // ✅ StateFlow to expose expenses
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
-    // ✅ Function to fetch expenses in real-time
-    fun getExpenses(onResult: (Result<List<Expense>>) -> Unit) {
-        expensesCollection.addSnapshotListener { snapshot, exception ->
-            if (exception != null) {
-                onResult(Result.failure(exception))
-                return@addSnapshotListener
-            }
-
-            val expenseList = snapshot?.documents?.mapNotNull { it.toObject<Expense>() } ?: emptyList()
-            _expenses.value = expenseList // ✅ Update StateFlow
-            onResult(Result.success(expenseList))
+    /**
+     * 🔹 Fetch expenses for a specific date from Firestore (Real-time updates)
+     */
+    fun getExpensesByDate(date: Date): Flow<List<Expense>> = callbackFlow {
+        if (userId == null) {
+            close(Exception("User not logged in"))
+            return@callbackFlow
         }
-    }
 
-    // ✅ Function to add an expense (Uploads images first)
-    suspend fun addExpense(expense: Expense): Result<String> {
-        return try {
-            // ✅ Upload images to Firebase Storage
-            val uploadedImageUrls = expense.imageUris.mapNotNull { uploadImageToStorage(it) }
+        val formattedDate = dateFormat.format(date)
 
-            // ✅ Create a new expense with image URLs
-            val newExpense = expense.copy(
-                id = expensesCollection.document().id, // Generate Firestore document ID
-                imageUris = uploadedImageUrls // ✅ Store uploaded image URLs
-            )
-
-            // ✅ Save the expense to Firestore
-            expensesCollection.document(newExpense.id).set(newExpense).await()
-
-            Result.success("Expense added successfully!")
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    // ✅ Function to upload an image to Firebase Storage
-    private suspend fun uploadImageToStorage(imageUri: String): String? {
-        return try {
-            val imageRef = storage.child("expense_images/${UUID.randomUUID()}.jpg") // Unique name for image
-            val uploadTask = imageRef.putFile(android.net.Uri.parse(imageUri)).await()
-            imageRef.downloadUrl.await().toString() // ✅ Return download URL
-        } catch (e: Exception) {
-            null // ✅ If upload fails, return null
-        }
-    }
-
-    // ✅ Function to delete an expense from Firestore & Storage
-    suspend fun deleteExpense(expenseId: String, imageUris: List<String>): Result<String> {
-        return try {
-            // ✅ Delete expense document from Firestore
-            expensesCollection.document(expenseId).delete().await()
-
-            // ✅ Delete images from Firebase Storage
-            imageUris.forEach { imageUrl ->
-                deleteImageFromStorage(imageUrl)
-            }
-
-            Result.success("Expense deleted successfully!")
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    // ✅ Function to delete an image from Firebase Storage
-    private suspend fun deleteImageFromStorage(imageUrl: String) {
         try {
-            val imageRef = FirebaseStorage.getInstance().getReferenceFromUrl(imageUrl)
-            imageRef.delete().await()
+            val listener = db.collection("users")
+                .document(userId!!)
+                .collection("expenses")
+                .whereEqualTo("date", formattedDate)
+                .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING) // 🔹 Ensure Firestore allows this query
+                .addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        Log.e("FirestoreError", "Firestore query failed", e) // Debug Log
+                        close(e)
+                        return@addSnapshotListener
+                    }
+
+                    if (snapshot != null) {
+                        val expenses = snapshot.documents.mapNotNull { it.toObject(FirestoreExpense::class.java)?.toExpense() }
+                        trySend(expenses)
+                    }
+                }
+
+            awaitClose { listener.remove() }
         } catch (e: Exception) {
-            // Ignore if image deletion fails (Maybe already deleted)
+            Log.e("FirestoreError", "Index required for sorting. Check Firestore console.", e)
+            close(e)
+        }
+    }
+
+    /**
+     * 🔹 Add a new expense to Firestore
+     */
+    suspend fun addExpense(expense: Expense) {
+        if (userId == null) throw Exception("User not logged in")
+
+        val expenseRef = db.collection("users")
+            .document(userId!!)
+            .collection("expenses")
+            .document() // Generate a unique Firestore document ID
+
+        val expenseToStore = expense.toFirestoreExpense().copy(
+            id = expenseRef.id
+        ) // Assign Firestore ID
+
+        expenseRef.set(expenseToStore).await() // Save to Firestore
+    }
+
+    /**
+     * 🔹 Update an existing expense in Firestore
+     */
+    suspend fun updateExpense(expense: Expense) {
+        if (userId == null) throw Exception("User not logged in")
+
+        val expenseRef = db.collection("users")
+            .document(userId!!)
+            .collection("expenses")
+            .document(expense.id) // Reference to the expense document
+
+        val updatedExpense = expense.toFirestoreExpense() // Convert to Firestore-friendly format
+
+        expenseRef.set(updatedExpense).await() // Overwrite the existing document
+    }
+
+    /**
+     * 🔹 Delete an expense from Firestore
+     */
+    suspend fun deleteExpense(expenseId: String) {
+        if (userId == null) throw Exception("User not logged in")
+
+        db.collection("users")
+            .document(userId!!)
+            .collection("expenses")
+            .document(expenseId)
+            .delete()
+            .await() // Delete the document from Firestore
+    }
+
+    companion object {
+        @Volatile
+        private var INSTANCE: ExpenseRepository? = null
+
+        fun getInstance(): ExpenseRepository {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: ExpenseRepository().also { INSTANCE = it }
+            }
         }
     }
 }

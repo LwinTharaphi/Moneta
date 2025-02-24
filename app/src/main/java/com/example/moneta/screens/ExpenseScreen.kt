@@ -37,6 +37,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
@@ -46,20 +47,32 @@ import kotlin.math.cos
 import kotlin.math.sin
 import com.example.moneta.model.Expense
 import com.example.moneta.model.ExpenseCategory
+import com.example.moneta.repository.ExpenseRepository
+import com.example.moneta.viewmodel.ExpenseViewModel
+import com.example.moneta.viewmodel.ExpenseViewModelFactory
 
 @SuppressLint("MutableCollectionMutableState")
 @Composable
-fun ExpenseScreen(navController: NavController) {
-    var selectedDate by remember { mutableStateOf(Date()) }
-    var expensesByDate by remember { mutableStateOf(mutableMapOf<Date, MutableList<Expense>>()) }
+fun ExpenseScreen(
+    navController: NavController
+){
+    val viewModel: ExpenseViewModel = viewModel(
+        factory = ExpenseViewModelFactory() // ✅ Use the factory
+    )
+    val selectedDate by viewModel.selectedDate.collectAsState()
+    val expenses by viewModel.expenses.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
 
     var showBottomSheet by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
-    var selectedExpense by remember { mutableStateOf<Expense?>(null) }
+    val selectedExpense by viewModel.selectedExpense.collectAsState()
 
     val dateFormat = SimpleDateFormat("MMMM dd", Locale.getDefault())
-    val expenses = expensesByDate[selectedDate] ?: mutableListOf()
+//    val expenses = expensesByDate[selectedDate] ?: mutableListOf()
+
+    LaunchedEffect(selectedDate) {
+        viewModel.fetchExpenses(selectedDate)
+    }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         // Title with Notification Icon
@@ -106,16 +119,18 @@ fun ExpenseScreen(navController: NavController) {
                     "<",
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable {
-                        selectedDate = Calendar.getInstance().apply {
-                            time = selectedDate
-                            add(Calendar.DAY_OF_MONTH, -1)
-                        }.time
+                        viewModel.updateSelectedDate(
+                            Calendar.getInstance().apply {
+                                time = selectedDate
+                                add(Calendar.DAY_OF_MONTH, -1)
+                            }.time
+                        )
                     }
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(
                     dateFormat.format(selectedDate),
-                    style = MaterialTheme.typography.bodyMedium, // Smaller font size
+                    style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(horizontal = 8.dp)
                 )
                 Spacer(modifier = Modifier.width(16.dp))
@@ -123,10 +138,12 @@ fun ExpenseScreen(navController: NavController) {
                     ">",
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable {
-                        selectedDate = Calendar.getInstance().apply {
-                            time = selectedDate
-                            add(Calendar.DAY_OF_MONTH, 1)
-                        }.time
+                        viewModel.updateSelectedDate(
+                            Calendar.getInstance().apply {
+                                time = selectedDate
+                                add(Calendar.DAY_OF_MONTH, 1)
+                            }.time
+                        )
                     }
                 )
             }
@@ -168,9 +185,9 @@ fun ExpenseScreen(navController: NavController) {
             LazyColumn(modifier = Modifier.weight(1f)) {
                 items(expenses) { expense ->
                     ExpenseItem(expense = expense, onClick = {
-                            selectedExpense = expense
-                            showBottomSheet = true
-                        }) // ✅ No extra UI duplication here
+                        viewModel.selectExpense(expense)
+                        showBottomSheet = true
+                    })
                 }
             }
         }
@@ -189,46 +206,23 @@ fun ExpenseScreen(navController: NavController) {
         )
     }
 
-
-
     // Expense Dialog
     if (showDialog) {
         ExpenseDialog(
-            onDismiss = { showDialog = false },
-            onAddExpense = { description, amount, category, imageUris -> // ✅ Updated to handle multiple images
-                expensesByDate = expensesByDate.toMutableMap().apply {
-                    val newExpenses = this[selectedDate]?.toMutableList() ?: mutableListOf()
-                    newExpenses.add(
-                        Expense(
-                            description = description,
-                            amount = amount,
-                            date = selectedDate,
-                            category = category,
-                            imageUris = imageUris // ✅ Store the list of image URIs
-                        )
-                    )
-                    this[selectedDate] = newExpenses
-                }
-                showDialog = false
-            }
+            viewModel = viewModel, // 🔹 Pass ViewModel directly
+            onDismiss = { showDialog = false }
         )
     }
-
 
     // Expense Bottom Sheet
     if (showBottomSheet && selectedExpense != null) {
         ExpenseBottomSheet(
+            viewModel = viewModel,
             expense = selectedExpense!!,
             onDismiss = { showBottomSheet = false },
             onEdit = {
                 showBottomSheet = false
-                showEditDialog = true // Open edit dialog instead of modifying directly
-            },
-            onDelete = {
-                expensesByDate = expensesByDate.toMutableMap().apply {
-                    this[selectedDate]?.remove(selectedExpense)
-                }
-                showBottomSheet = false
+                showEditDialog = true
             }
         )
     }
@@ -236,27 +230,11 @@ fun ExpenseScreen(navController: NavController) {
     // Edit Dialog
     if (showEditDialog && selectedExpense != null) {
         ExpenseEditDialog(
+            viewModel = viewModel,
             expense = selectedExpense!!,
-            onDismiss = { showEditDialog = false },
-            onConfirm = { updatedDescription, updatedAmount, updatedCategory, updatedImageUris -> // ✅ Now includes updated images
-                expensesByDate = expensesByDate.toMutableMap().apply {
-                    this[selectedDate] = this[selectedDate]?.map {
-                        if (it == selectedExpense) {
-                            Expense(
-                                description = updatedDescription,
-                                amount = updatedAmount, // ✅ Updated Amount
-                                date = selectedDate,
-                                category = updatedCategory, // ✅ Updated Category
-                                imageUris = updatedImageUris // ✅ Updated Images
-                            )
-                        } else it
-                    }?.toMutableList() ?: mutableListOf()
-                }
-                showEditDialog = false
-            }
+            onDismiss = { showEditDialog = false }
         )
     }
-
 }
 
 // Expense Item
@@ -268,16 +246,16 @@ fun ExpenseItem(expense: Expense, onClick: () -> Unit) {
             .padding(vertical = 8.dp)
             .clickable { onClick() }
     ) {
-        // ✅ Category (Bigger font, onSurface color)
+        // 🔹 Category (Bigger font, primary color)
         Text(
             text = expense.category.name,
             style = MaterialTheme.typography.bodyLarge.copy(
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold
             )
         )
 
-        // ✅ Row for Description & Amount
+        // 🔹 Row for Description & Amount
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -292,54 +270,32 @@ fun ExpenseItem(expense: Expense, onClick: () -> Unit) {
             )
             Text(
                 text = "฿${String.format(Locale.getDefault(), "%.2f", expense.amount)}",
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.secondary
+                )
             )
         }
 
-        // ✅ Show Multiple Images Below (If Available)
-        if (expense.imageUris.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(6.dp))
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(expense.imageUris) { uri ->
-                    Image(
-                        painter = rememberAsyncImagePainter(uri),
-                        contentDescription = "Expense Image",
-                        modifier = Modifier
-                            .size(80.dp) // ✅ Keeps it small, aligned left
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.LightGray)
-                    )
-                }
-            }
-        }
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp)) // ✅ Separator
+        // 🔹 Separator Line
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
     }
 }
 
-// Expense Dialog
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpenseDialog(
-    onDismiss: () -> Unit,
-    onAddExpense: (String, Float, ExpenseCategory, List<String>) -> Unit // ✅ Changed imageUri to List<String>
+    viewModel: ExpenseViewModel, // 🔹 Inject ViewModel
+    onDismiss: () -> Unit
 ) {
     var description by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf(ExpenseCategory.Dining) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
-    var imageUris by remember { mutableStateOf<List<String>>(emptyList()) } // ✅ Store multiple images
+
+    val selectedDate by viewModel.selectedDate.collectAsState() // 🔹 Use ViewModel's selected date
 
     val categories = ExpenseCategory.entries
-
-    // ✅ Image Picker Launcher (Allows multiple selection)
-    val imagePickerLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
-            imageUris = uris.map { it.toString() } // Convert URIs to Strings
-        }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -348,7 +304,15 @@ fun ExpenseDialog(
                 onClick = {
                     val amountFloat = amount.toFloatOrNull() ?: 0f
                     if (description.isNotEmpty() && amountFloat > 0f) {
-                        onAddExpense(description, amountFloat, selectedCategory, imageUris) // ✅ Pass multiple images
+                        // 🔹 Call ViewModel to add expense to Firestore
+                        viewModel.addExpense(
+                            Expense(
+                                description = description,
+                                amount = amountFloat,
+                                date = selectedDate,
+                                category = selectedCategory
+                            )
+                        )
                         onDismiss()
                     }
                 },
@@ -411,35 +375,6 @@ fun ExpenseDialog(
                         }
                     }
                 }
-
-                // ✅ Image Picker Section (Supports Multiple Images)
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // ✅ Display Selected Images in a Row
-                    LazyRow {
-                        items(imageUris) { uri ->
-                            Image(
-                                painter = rememberAsyncImagePainter(uri),
-                                contentDescription = "Selected Image",
-                                modifier = Modifier
-                                    .size(80.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Color.LightGray)
-                                    .padding(end = 8.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Button(onClick = { imagePickerLauncher.launch("image/*") }) {
-                        Icon(imageVector = Icons.Default.AddAPhoto, contentDescription = "Pick Images")
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Pick Images")
-                    }
-                }
             }
         }
     )
@@ -448,10 +383,10 @@ fun ExpenseDialog(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpenseBottomSheet(
+    viewModel: ExpenseViewModel,
     expense: Expense,
     onDismiss: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onEdit: () -> Unit
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -465,26 +400,6 @@ fun ExpenseBottomSheet(
         ) {
             Text("Expense Details", style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(12.dp))
-
-            // ✅ Show Images if Available
-            if (expense.imageUris.isNotEmpty()) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(expense.imageUris) { uri ->
-                        Image(
-                            painter = rememberAsyncImagePainter(uri),
-                            contentDescription = "Expense Image",
-                            modifier = Modifier
-                                .size(100.dp) // ✅ Fixed Size
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color.LightGray)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -523,7 +438,13 @@ fun ExpenseBottomSheet(
                 Button(onClick = onEdit, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)) {
                     Text("Edit")
                 }
-                Button(onClick = onDelete, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)) {
+                Button(
+                    onClick = {
+                        viewModel.deleteExpense(expense.id) // 🔹 Call deleteExpense
+                        onDismiss() // 🔹 Close the bottom sheet
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                ) {
                     Text("Delete", color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
@@ -537,24 +458,16 @@ fun ExpenseBottomSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpenseEditDialog(
+    viewModel: ExpenseViewModel,
     expense: Expense,
-    onDismiss: () -> Unit,
-    onConfirm: (String, Float, ExpenseCategory, List<String>) -> Unit // ✅ Updated to accept List<String> for images
+    onDismiss: () -> Unit
 ) {
     var description by remember { mutableStateOf(expense.description) }
     var amount by remember { mutableStateOf(expense.amount.toString()) }
     var selectedCategory by remember { mutableStateOf(expense.category) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
-    var imageUris by remember { mutableStateOf(expense.imageUris.toMutableList()) } // ✅ Stores multiple images
 
     val categories = ExpenseCategory.entries
-
-    // ✅ Image Picker Launcher (Allows Multiple Selection)
-    val imagePickerLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
-            imageUris =
-                (imageUris + uris.map { it.toString() }).toMutableList() // ✅ Append new images
-        }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -563,7 +476,12 @@ fun ExpenseEditDialog(
                 onClick = {
                     val updatedAmount = amount.toFloatOrNull() ?: 0f
                     if (description.isNotEmpty() && updatedAmount > 0f) {
-                        onConfirm(description, updatedAmount, selectedCategory, imageUris) // ✅ Pass updated image list
+                        val updatedExpense = expense.copy(
+                            description = description,
+                            amount = updatedAmount,
+                            category = selectedCategory
+                        )
+                        viewModel.updateExpense(updatedExpense) // 🔹 Call updateExpense
                         onDismiss()
                     }
                 },
@@ -624,47 +542,6 @@ fun ExpenseEditDialog(
                                 }
                             )
                         }
-                    }
-                }
-
-                // ✅ Image Picker Section (Supports Multiple Images)
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // ✅ Display Selected Images in a Scrollable Row with Remove Button
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        items(imageUris) { uri ->
-                            Box {
-                                Image(
-                                    painter = rememberAsyncImagePainter(uri),
-                                    contentDescription = "Expense Image",
-                                    modifier = Modifier
-                                        .size(100.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color.LightGray)
-                                )
-                                IconButton(
-                                    onClick = { imageUris = (imageUris - uri).toMutableList() }, // ✅ Remove Image
-                                    modifier = Modifier
-                                        .size(20.dp)
-                                        .background(Color.Red, shape = CircleShape)
-                                        .align(Alignment.TopEnd)
-                                ) {
-                                    Icon(Icons.Default.Close, contentDescription = "Remove", tint = Color.White)
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Button(onClick = { imagePickerLauncher.launch("image/*") }) {
-                        Icon(imageVector = Icons.Default.AddAPhoto, contentDescription = "Pick Images")
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Pick More Images")
                     }
                 }
             }

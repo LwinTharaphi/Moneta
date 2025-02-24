@@ -64,11 +64,15 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.runtime)
     implementation(libs.io.coil.kt.coil.compose)
-    implementation(libs.firebase.auth.ktx)
     implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.storage.ktx)
     implementation(libs.firebase.firestore.ktx)
+
+    implementation(libs.play.services.auth)
+    implementation(libs.play.services.base)
+
     // Firebase Coroutines Support (Recommended for MVVM)
     implementation(libs.kotlinx.coroutines.play.services) // ✅ Helps with async Firestore calls
     implementation(libs.io.coil.kt.coil.compose)

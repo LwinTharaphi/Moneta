@@ -7,63 +7,68 @@ import com.example.moneta.repository.ExpenseRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.util.*
 
 class ExpenseViewModel(private val repository: ExpenseRepository) : ViewModel() {
 
-    // ✅ StateFlow to store list of expenses
     private val _expenses = MutableStateFlow<List<Expense>>(emptyList())
     val expenses: StateFlow<List<Expense>> = _expenses
 
-    // ✅ Loading & Error States
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
+    private val _selectedDate = MutableStateFlow(Date())
+    val selectedDate: StateFlow<Date> = _selectedDate
 
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage
+    private val _selectedExpense = MutableStateFlow<Expense?>(null)
+    val selectedExpense: StateFlow<Expense?> = _selectedExpense
 
-    // ✅ Fetch Expenses (Real-time updates)
-    fun fetchExpenses() {
-        _isLoading.value = true
+    fun selectExpense(expense: Expense?) {
+        _selectedExpense.value = expense
+    }
+
+    /**
+     * 🔹 Fetch expenses for the selected date
+     */
+    fun fetchExpenses(date: Date) {
         viewModelScope.launch {
-            repository.getExpenses { result ->
-                result.onSuccess { expenseList ->
-                    _expenses.value = expenseList
-                    _isLoading.value = false
-                }.onFailure { exception ->
-                    _errorMessage.value = exception.localizedMessage
-                    _isLoading.value = false
-                }
+            repository.getExpensesByDate(date).collect { expensesList ->
+                _expenses.value = expensesList
             }
         }
     }
 
-    // ✅ Add Expense
+    /**
+     * 🔹 Add a new expense
+     */
     fun addExpense(expense: Expense) {
-        _isLoading.value = true
         viewModelScope.launch {
-            val result = repository.addExpense(expense)
-            result.onSuccess {
-                fetchExpenses() // ✅ Refresh expenses after adding
-                _isLoading.value = false
-            }.onFailure { exception ->
-                _errorMessage.value = exception.localizedMessage
-                _isLoading.value = false
-            }
+            repository.addExpense(expense)
         }
     }
 
-    // ✅ Updated Delete Expense (Passes `imageUris` too)
-    fun deleteExpense(expense: Expense) {
-        _isLoading.value = true
+    /**
+     * 🔹 Update selected date
+     */
+    fun updateSelectedDate(newDate: Date) {
+        _selectedDate.value = newDate
+        fetchExpenses(newDate) // Fetch expenses for the new date
+    }
+
+    /**
+     * 🔹 Update an expense
+     */
+    fun updateExpense(expense: Expense) {
         viewModelScope.launch {
-            val result = repository.deleteExpense(expense.id, expense.imageUris) // ✅ Now deletes images too
-            result.onSuccess {
-                fetchExpenses() // ✅ Refresh after delete
-                _isLoading.value = false
-            }.onFailure { exception ->
-                _errorMessage.value = exception.localizedMessage
-                _isLoading.value = false
-            }
+            repository.updateExpense(expense)
+            fetchExpenses(selectedDate.value) // Refresh the expense list
+        }
+    }
+
+    /**
+     * 🔹 Delete an expense
+     */
+    fun deleteExpense(expenseId: String) {
+        viewModelScope.launch {
+            repository.deleteExpense(expenseId)
+            fetchExpenses(selectedDate.value) // Refresh the expense list
         }
     }
 }
