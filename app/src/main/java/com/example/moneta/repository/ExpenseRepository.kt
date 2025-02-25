@@ -5,21 +5,13 @@ import com.example.moneta.model.Expense
 import com.example.moneta.model.FirestoreExpense
 import com.example.moneta.model.toFirestoreExpense
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.firestore.toObject
-import com.google.firebase.ktx.Firebase
-import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.UUID
 
 class ExpenseRepository {
 
