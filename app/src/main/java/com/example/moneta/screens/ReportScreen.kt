@@ -1,5 +1,7 @@
 package com.example.moneta.screens
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,22 +18,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import java.text.SimpleDateFormat
-import java.util.*
-import kotlin.math.cos
-import kotlin.math.sin
+import com.example.moneta.repository.ExpenseRepository
+import com.example.moneta.viewmodel.ReportViewModel
+import com.example.moneta.viewmodel.ReportViewModelFactory
 
 @Composable
 fun ReportScreen(navController: NavController) {
+    val context = LocalContext.current // 🔹 Get Context
+    val expenseRepository = ExpenseRepository.getInstance(context) // 🔹 Pass context
+    val viewModel: ReportViewModel = viewModel(factory = ReportViewModelFactory(expenseRepository))
     var showDialog by remember { mutableStateOf(false) }
-    var selectedDate by remember { mutableStateOf(getCurrentMonthYear()) }
+    val selectedMonth by viewModel.selectedMonth.collectAsState()
+    val selectedYear by viewModel.selectedYear.collectAsState()
 
     Column(
         modifier = Modifier.padding(16.dp),
@@ -48,7 +52,7 @@ fun ReportScreen(navController: NavController) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = selectedDate,
+                    text = "${getMonthName(selectedMonth)} $selectedYear",
                     style = MaterialTheme.typography.headlineSmall,
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -66,15 +70,11 @@ fun ReportScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Mock Data for Categories and Expenses (Replace with real data)
-        val categories = listOf(
-            Category("Groceries", 180.0),
-            Category("Transport", 100.0),
-            Category("Dining", 250.0),
-            Category("Others", 80.0)
-        )
+        val monthlyExpenses by viewModel.monthlyExpenses.collectAsState() // 🔹 Fetch from ViewModel
 
-        val totalExpense = categories.sumOf { it.amount }
+        val categories = viewModel.processCategoryData(monthlyExpenses) // 🔹 Group by category
+
+        val totalExpense = categories.sumOf { it.amount }.takeIf { it > 0 } ?: 0.0
         val sortedCategories = categories.sortedByDescending { it.amount }
 
         Column(modifier = Modifier.padding(16.dp)) {
@@ -85,15 +85,24 @@ fun ReportScreen(navController: NavController) {
 
             // Category Rows (Sorted)
             sortedCategories.forEach { category ->
-                CategoryRow(category = category, totalExpense = totalExpense)
+                CategoryRow(category = category)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Total Expense
+            // Centered Total Expense Text
             Text(
-                text = "Total Expense: ฿${"%.2f".format(totalExpense)}",
-                style = MaterialTheme.typography.bodyLarge
+                text = if (totalExpense > 0)
+                    "Total Expense: ฿ ${"%.2f".format(totalExpense)}"
+                else
+                    "No expenses recorded for this month.",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.secondary
+                ),
+                modifier = Modifier
+                    .fillMaxWidth() // 🔹 Makes sure text takes full width
+                    .wrapContentWidth(Alignment.CenterHorizontally) // 🔹 Centers the text
             )
         }
     }
@@ -101,79 +110,100 @@ fun ReportScreen(navController: NavController) {
     // Month-Year Picker Dialog
     if (showDialog) {
         MonthYearPickerDialog(
-            currentSelection = selectedDate,
+            currentMonth = selectedMonth,
+            currentYear = selectedYear,
             onDismiss = { showDialog = false },
-            onMonthSelected = { selectedDate = it }
+            onMonthSelected = { newMonth, newYear ->
+                viewModel.updateSelectedMonth(newMonth, newYear)
+                showDialog = false
+            }
         )
     }
 }
 
+fun getMonthName(month: Int): String {
+    val months = listOf(
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    )
+    return months[month - 1] // 🔹 Convert number to month name
+}
+
+
 // Updated Pie Chart for Category-wise Expenses
 @Composable
 fun PieChart(expenses: List<Category>, modifier: Modifier = Modifier) {
+    if (expenses.isEmpty()) {
+        Text(
+            text = "No data available",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally)
+        )
+        return
+    }
+
     val total = expenses.sumOf { it.amount }
-    val softColors = listOf(
-        Color(0xFFB3E5FC), // Light Blue
-        Color(0xFFFFCCBC), // Soft Orange
-        Color(0xFFC8E6C9), // Pale Green
-        Color(0xFFF8BBD0), // Light Pink
-        Color(0xFFD1C4E9)  // Soft Purple
-    )
+
+    // Ensure we only create animation states if expenses is not empty
+    val animatedAngles = remember(expenses) {
+        expenses.map { mutableStateOf(0f) }
+    }
+
+    // Trigger animation when expenses are updated
+    LaunchedEffect(expenses) {
+        expenses.forEachIndexed { index, category ->
+            animatedAngles[index].value = ((category.amount.toFloat() / total.toFloat()) * 360f)
+        }
+    }
+
+    val animatedSweepAngles = expenses.mapIndexed { index, category ->
+        animateFloatAsState(
+            targetValue = animatedAngles[index].value,
+            animationSpec = tween(durationMillis = 1200, delayMillis = index * 300) // 🔹 Delays each slice
+        )
+    }
 
     Canvas(modifier = modifier.size(200.dp)) {
         val diameter = size.minDimension * 0.8f
         val radius = diameter / 2
+        var startAngle = -90f
+        val center = Offset(size.width / 2, size.height / 2)
 
-        if (expenses.isNotEmpty()) {
-            var startAngle = -90f
-            val center = Offset(size.width / 2, size.height / 2)
+        expenses.forEachIndexed { index, category ->
+            val animatedSweepAngle = animatedSweepAngles.getOrNull(index)?.value ?: 0f // 🔹 Prevents crash
 
-            expenses.forEachIndexed { index, category ->
-                val sweepAngle = ((category.amount.toFloat() / total.toFloat()) * 360f)
+            // Draw the animated arc slice
+            drawArc(
+                color = getCategoryColor(category.name),
+                startAngle = startAngle,
+                sweepAngle = animatedSweepAngle,
+                useCenter = true,
+                topLeft = Offset(center.x - radius, center.y - radius),
+                size = Size(diameter, diameter)
+            )
 
-                // Draw the arc slice
-                drawArc(
-                    color = softColors[index % softColors.size],
-                    startAngle = startAngle,
-                    sweepAngle = sweepAngle,
-                    useCenter = true,
-                    topLeft = Offset(center.x - radius, center.y - radius),
-                    size = Size(diameter, diameter)
+            startAngle += animatedSweepAngle
+        }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        expenses.forEach { category ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .background(getCategoryColor(category.name), shape = RoundedCornerShape(4.dp))
                 )
-
-                // Calculate label position
-                val angle = startAngle + sweepAngle / 2
-                val labelRadius = radius * 0.6f
-                val pi = 3.14
-                val x = center.x + labelRadius * cos(angle * pi / 180).toFloat()
-                val y = center.y + labelRadius * sin(angle * pi / 180).toFloat()
-
-                // Draw category name text
-                drawContext.canvas.nativeCanvas.drawText(
-                    category.name,
-                    x,
-                    y,
-                    android.graphics.Paint().apply {
-                        color = android.graphics.Color.BLACK
-                        textSize = 30f
-                        textAlign = android.graphics.Paint.Align.CENTER
-                    }
-                )
-
-                startAngle += sweepAngle
-            }
-        } else {
-            drawIntoCanvas { canvas ->
-                val paint = android.graphics.Paint().apply {
-                    color = android.graphics.Color.GRAY
-                    textSize = 35f
-                    textAlign = android.graphics.Paint.Align.CENTER
-                }
-                canvas.nativeCanvas.drawText(
-                    "No Data for Pie Chart",
-                    size.width / 2,
-                    size.height / 2,
-                    paint
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "${category.name}: ${"%.1f".format((category.amount / total) * 100)}%",
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
         }
@@ -181,14 +211,13 @@ fun PieChart(expenses: List<Category>, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun CategoryRow(category: Category, totalExpense: Double) {
-    val percentage = (category.amount / totalExpense) * 100.0
+fun CategoryRow(category: Category) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Category Name
+        // Category Name with Percentage
         Text(
             text = category.name,
             style = MaterialTheme.typography.bodyMedium
@@ -197,54 +226,48 @@ fun CategoryRow(category: Category, totalExpense: Double) {
         // Percentage Bar
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.5f) // Bar size relative to available space
+                .fillMaxWidth(0.5f)
                 .height(8.dp)
-                .background(color = category.color, shape = RoundedCornerShape(4.dp))
+                .background(color = getCategoryColor(category.name), shape = RoundedCornerShape(4.dp))
         )
-
         // Amount
         Text(
-            text = "฿${"%.2f".format(category.amount)}",
-            style = MaterialTheme.typography.bodyMedium
+            text = "฿ ${"%.2f".format(category.amount)}",
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.secondary
+            )
         )
     }
 
     Spacer(modifier = Modifier.height(8.dp))
 }
 
-// Category Data Class with Color Assignments
-data class Category(val name: String, val amount: Double) {
-    val color: Color
-        get() = when (name) {
-            "Groceries" -> Color(0xFF8BC34A) // Green
-            "Transport" -> Color(0xFF03A9F4) // Blue
-            "Dining" -> Color(0xFFFFC107) // Amber
-            "Others" -> Color(0xFFF8BBD0) // Grey
-            else -> Color.Gray
-        }
-}
+data class Category(val name: String, val amount: Double)
 
-
-@Preview(showBackground = true)
-@Composable
-fun ReportScreenPreview() {
-    val navController = rememberNavController() // Create a NavController for preview
-    ReportScreen(navController = navController)
-}
-
-fun getCurrentMonthYear(): String {
-    val calendar = Calendar.getInstance()
-    val formatter = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
-    return formatter.format(calendar.time)
+// Fun to Get Category Color Assignments
+fun getCategoryColor(categoryName: String): Color {
+    return when (categoryName) {
+        "Groceries" -> Color(0xFF4CAF50) // Green
+        "Transport" -> Color(0xFF2196F3) // Blue
+        "Dining" -> Color(0xFFFF9800) // Orange
+        "Beverages" -> Color(0xFF9C27B0) // Purple
+        "Entertainment" -> Color(0xFFE91E63) // Pink
+        "Shopping" -> Color(0xFFFFEB3B) // Yellow
+        "Other" -> Color(0xFF9E9E9E) // Gray
+        else -> Color.Gray
+    }
 }
 
 @Composable
 fun MonthYearPickerDialog(
-    currentSelection: String,
-    onDismiss: ()-> Unit,
-    onMonthSelected: (String)->Unit
-){
-    var selectedYear by remember { mutableIntStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
+    currentMonth: Int,
+    currentYear: Int,
+    onDismiss: () -> Unit,
+    onMonthSelected: (Int, Int) -> Unit
+) {
+    var selectedMonth by remember { mutableIntStateOf(currentMonth - 1) } // 🔹 Store selected month
+    var selectedYear by remember { mutableIntStateOf(currentYear) }
     val months = listOf(
         "Jan", "Feb", "Mar", "Apr", "May", "Jun",
         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
@@ -257,7 +280,7 @@ fun MonthYearPickerDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
-            ){
+            ) {
                 IconButton(onClick = { selectedYear-- }) {
                     Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous Year")
                 }
@@ -269,21 +292,28 @@ fun MonthYearPickerDialog(
         },
         text = {
             Column {
-                for (i in months.indices step 6){
-                    Row (
+                for (i in months.indices step 6) {
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        for (j in i until (i+6).coerceAtMost(months.size)){
+                        for (j in i until (i + 6).coerceAtMost(months.size)) {
                             Text(
                                 text = months[j],
                                 modifier = Modifier
-                                    .clickable{
-                                        onMonthSelected("${months[j]} $selectedYear")
+                                    .clickable {
+                                        selectedMonth = j // 🔹 Update selectedMonth when clicked
+                                        onMonthSelected(j + 1, selectedYear)
                                         onDismiss()
                                     }
-                                    .padding(8.dp),
-                                fontSize = 16.sp
+                                    .padding(8.dp)
+                                    .background(
+                                        if (j == selectedMonth) Color.LightGray else Color.Transparent, // 🔹 Highlight selected month
+                                        shape = RoundedCornerShape(4.dp)
+                                    ),
+                                fontSize = 16.sp,
+                                fontWeight = if (j == selectedMonth) FontWeight.Bold else FontWeight.Normal, // 🔹 Bold selected month
+                                color = if (j == selectedMonth) Color.Black else Color.Gray
                             )
                         }
                     }

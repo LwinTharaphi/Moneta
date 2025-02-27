@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
+    id("kotlin-kapt") // 🔹 Required for Room database annotation processing
 }
 
 android {
@@ -53,6 +54,11 @@ dependencies {
     implementation(libs.firebase.messaging.ktx)
     implementation(libs.google.firebase.firestore.ktx)
     implementation(libs.androidx.work.runtime.ktx)
+    // Room Database
+    implementation (libs.androidx.room.runtime)
+    //noinspection KaptUsageInsteadOfKsp
+    kapt (libs.androidx.room.compiler)
+    implementation (libs.androidx.room.ktx)
 
 
     // Use Material Icons Extended for more icons like PieChart, etc.

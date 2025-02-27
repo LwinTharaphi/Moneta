@@ -49,7 +49,6 @@ import com.google.firebase.firestore.FirebaseFirestoreSettings
 sealed class Screen(val route: String, val title: String, val icon: ImageVector?) {
     object SignIn: Screen("sign_in_screen", "Sign In", null)
     object SignUp: Screen("sign_up_screen", "Sign Up", null)
-    object Home: Screen("home_screen", "Home", Icons.Filled.Home)
     object Report : Screen("report_screen", "Report", Icons.Filled.Assessment)
     object Expense: Screen("expense_screen", "Expenses", Icons.Filled.ShoppingCart)
     object Budget: Screen("budget_screen", "Budget", Icons.Filled.AttachMoney)
@@ -166,10 +165,6 @@ fun MainScreen(
             composable(Screen.SignUp.route) {
                 selectedScreen = Screen.SignUp.route
                 SignUpScreen(navController) // SignUp Screen
-            }
-            composable(Screen.Home.route) {
-                selectedScreen = Screen.Home.route
-                HomeScreen(navController) // Home Screen
             }
             composable(Screen.Expense.route) {
                 selectedScreen = Screen.Expense.route

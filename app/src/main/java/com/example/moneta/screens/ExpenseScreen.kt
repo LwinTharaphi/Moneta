@@ -1,6 +1,8 @@
 package com.example.moneta.screens
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -21,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -41,9 +44,9 @@ import com.example.moneta.viewmodel.ExpenseViewModelFactory
 fun ExpenseScreen(
     navController: NavController
 ){
-    val viewModel: ExpenseViewModel = viewModel(
-        factory = ExpenseViewModelFactory() // ✅ Use the factory
-    )
+    val context = LocalContext.current // 🔹 Get context
+    val viewModel: ExpenseViewModel = viewModel(factory = ExpenseViewModelFactory(context))
+
     val selectedDate by viewModel.selectedDate.collectAsState()
     val expenses by viewModel.expenses.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
@@ -534,73 +537,85 @@ fun ExpenseEditDialog(
     )
 }
 
-// Pie Chart
 @Composable
 fun PieChart(expenses: List<Expense>, modifier: Modifier = Modifier) {
-    val total = expenses.sumOf { it.amount.toDouble() } // Ensure double precision
-    val colors = listOf(
-        Color(0xFF90CAF9), // Soft Blue
-        Color(0xFFFFAB91), // Light Orange
-        Color(0xFFA5D6A7), // Soft Green
-        Color(0xFFF48FB1), // Light Pink
-        Color(0xFFCE93D8), // Lavender
-        Color(0xFFFFF59D)  // Pale Yellow
-    )
+    val total = expenses.sumOf { it.amount.toDouble() }
 
-    val textColor = MaterialTheme.colorScheme.onSurface.toArgb()
+    if (expenses.isEmpty()) {
+        Canvas(modifier = modifier.size(200.dp)) {
+            val center = Offset(size.width / 2, size.height / 2)
 
-    Canvas(modifier = modifier.size(200.dp)) {
-        val diameter = size.minDimension * 0.8f
-        val radius = diameter / 2
-        val center = Offset(size.width / 2, size.height / 2)
-
-        if (total > 0) { // ✅ Prevents division by zero
-            var startAngle = -90f
-            expenses.forEachIndexed { index, expense ->
-                val sweepAngle = (expense.amount / total * 360).toFloat()
-
-                drawArc(
-                    color = colors[index % colors.size], // ✅ Use main color list
-                    startAngle = startAngle,
-                    sweepAngle = sweepAngle,
-                    useCenter = true,
-                    topLeft = Offset(center.x - radius, center.y - radius),
-                    size = Size(diameter, diameter)
-                )
-
-                // Position text labels
-                val angle = Math.toRadians((startAngle + sweepAngle / 2).toDouble()).toFloat()
-                val labelRadius = radius * 0.7f // ✅ Adjusted label radius
-                val x = center.x + labelRadius * cos(angle)
-                val y = center.y + labelRadius * sin(angle)
-
-                drawContext.canvas.nativeCanvas.drawText(
-                    expense.description,
-                    x,
-                    y,
-                    android.graphics.Paint().apply {
-                        color = android.graphics.Color.BLACK
-                        textSize = 30f
-                        textAlign = android.graphics.Paint.Align.CENTER
-                    }
-                )
-
-                startAngle += sweepAngle
-            }
-        } else {
             drawIntoCanvas { canvas ->
                 val paint = android.graphics.Paint().apply {
-                    color = textColor
+                    color = android.graphics.Color.GRAY
                     textSize = 35f
                     textAlign = android.graphics.Paint.Align.CENTER
                 }
                 canvas.nativeCanvas.drawText(
                     "Start Adding Expenses",
-                    size.width / 2,
-                    size.height / 2,
+                    center.x,
+                    center.y,
                     paint
                 )
             }
+        }
+        return
+    }
+
+    // 🔹 Store animated angles only if expenses exist
+    val animatedAngles = remember { expenses.map { mutableFloatStateOf(0f) } }
+
+    // 🔹 Trigger animation when the composable loads
+    LaunchedEffect(expenses) {
+        expenses.forEachIndexed { index, expense ->
+            animatedAngles[index].floatValue = ((expense.amount.toFloat() / total.toFloat()) * 360f)
+        }
+    }
+
+    val animatedSweepAngles = List(expenses.size) { index ->
+        animateFloatAsState(
+            targetValue = animatedAngles[index].floatValue,
+            animationSpec = tween(durationMillis = 1200, delayMillis = index * 300)
+        )
+    }
+
+    Canvas(modifier = modifier.size(200.dp)) {
+        val diameter = size.minDimension * 0.8f
+        val radius = diameter / 2
+        var startAngle = -90f
+        val center = Offset(size.width / 2, size.height / 2)
+
+        expenses.forEachIndexed { index, expense ->
+            val animatedSweepAngle = animatedSweepAngles.getOrNull(index)?.value ?: 0f // 🔹 Prevents crash
+
+            // Draw the animated arc slice
+            drawArc(
+                color = getCategoryColor(expense.category.name),
+                startAngle = startAngle,
+                sweepAngle = animatedSweepAngle,
+                useCenter = true,
+                topLeft = Offset(center.x - radius, center.y - radius),
+                size = Size(diameter, diameter)
+            )
+
+            // Position text labels inside slices
+            val angle = Math.toRadians((startAngle + animatedSweepAngle / 2).toDouble()).toFloat()
+            val labelRadius = radius * 0.6f
+            val x = center.x + labelRadius * cos(angle)
+            val y = center.y + labelRadius * sin(angle)
+
+            drawContext.canvas.nativeCanvas.drawText(
+                expense.description,
+                x,
+                y,
+                android.graphics.Paint().apply {
+                    color = android.graphics.Color.WHITE
+                    textSize = 30f
+                    textAlign = android.graphics.Paint.Align.CENTER
+                }
+            )
+
+            startAngle += animatedSweepAngle
         }
     }
 }

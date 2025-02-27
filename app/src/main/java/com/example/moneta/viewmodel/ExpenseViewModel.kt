@@ -6,6 +6,7 @@ import com.example.moneta.model.Expense
 import com.example.moneta.repository.ExpenseRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.util.*
 
@@ -25,22 +26,34 @@ class ExpenseViewModel(private val repository: ExpenseRepository) : ViewModel() 
     }
 
     /**
-     * 🔹 Fetch expenses for the selected date
+     * 🔹 Fetch expenses for the selected date (Uses Room First, Then Firestore)
      */
     fun fetchExpenses(date: Date) {
         viewModelScope.launch {
-            repository.getExpensesByDate(date).collect { expensesList ->
+            repository.getExpensesByDate(date).collectLatest { expensesList ->
                 _expenses.value = expensesList
             }
         }
     }
 
     /**
-     * 🔹 Add a new expense
+     * 🔹 Fetch expenses for the selected month (Uses Room First, Then Firestore)
+     */
+    fun fetchMonthlyExpenses(startDate: String, endDate: String) {
+        viewModelScope.launch {
+            repository.getMonthlyExpenses(startDate, endDate).collectLatest { expensesList ->
+                _expenses.value = expensesList
+            }
+        }
+    }
+
+    /**
+     * 🔹 Add a new expense (Firestore only)
      */
     fun addExpense(expense: Expense) {
         viewModelScope.launch {
             repository.addExpense(expense)
+            fetchExpenses(selectedDate.value) // Refresh list after adding
         }
     }
 
@@ -49,11 +62,11 @@ class ExpenseViewModel(private val repository: ExpenseRepository) : ViewModel() 
      */
     fun updateSelectedDate(newDate: Date) {
         _selectedDate.value = newDate
-        fetchExpenses(newDate) // Fetch expenses for the new date
+        fetchExpenses(newDate) // 🔹 Fetch expenses for the new date
     }
 
     /**
-     * 🔹 Update an expense
+     * 🔹 Update an expense (Firestore only)
      */
     fun updateExpense(expense: Expense) {
         viewModelScope.launch {
@@ -63,7 +76,7 @@ class ExpenseViewModel(private val repository: ExpenseRepository) : ViewModel() 
     }
 
     /**
-     * 🔹 Delete an expense
+     * 🔹 Delete an expense (Firestore only)
      */
     fun deleteExpense(expenseId: String) {
         viewModelScope.launch {
@@ -72,3 +85,4 @@ class ExpenseViewModel(private val repository: ExpenseRepository) : ViewModel() 
         }
     }
 }
+
