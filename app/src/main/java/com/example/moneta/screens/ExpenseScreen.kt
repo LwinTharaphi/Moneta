@@ -562,19 +562,23 @@ fun PieChart(expenses: List<Expense>, modifier: Modifier = Modifier) {
         return
     }
 
-    // 🔹 Store animated angles only if expenses exist
-    val animatedAngles = remember { expenses.map { mutableFloatStateOf(0f) } }
+    // 🔹 Ensure animation states match the current list of expenses
+    val animatedAngles = remember(expenses) { expenses.map { mutableFloatStateOf(0f) } }.toMutableList()
 
-    // 🔹 Trigger animation when the composable loads
+    // 🔹 Ensure each new expense gets an animation state
     LaunchedEffect(expenses) {
         expenses.forEachIndexed { index, expense ->
-            animatedAngles[index].floatValue = ((expense.amount.toFloat() / total.toFloat()) * 360f)
+            if (index < animatedAngles.size) {
+                animatedAngles[index].floatValue = ((expense.amount.toFloat() / total.toFloat()) * 360f)
+            } else {
+                animatedAngles += mutableFloatStateOf((expense.amount.toFloat() / total.toFloat()) * 360f)
+            }
         }
     }
 
     val animatedSweepAngles = List(expenses.size) { index ->
         animateFloatAsState(
-            targetValue = animatedAngles[index].floatValue,
+            targetValue = animatedAngles.getOrElse(index) { mutableFloatStateOf(0f) }.floatValue, // 🔹 Prevents out-of-bounds error
             animationSpec = tween(durationMillis = 1200, delayMillis = index * 300)
         )
     }
@@ -586,7 +590,7 @@ fun PieChart(expenses: List<Expense>, modifier: Modifier = Modifier) {
         val center = Offset(size.width / 2, size.height / 2)
 
         expenses.forEachIndexed { index, expense ->
-            val animatedSweepAngle = animatedSweepAngles.getOrNull(index)?.value ?: 0f // 🔹 Prevents crash
+            val animatedSweepAngle = animatedSweepAngles.getOrElse(index) { mutableFloatStateOf(0f) }.value // 🔹 Prevents crash
 
             // Draw the animated arc slice
             drawArc(
