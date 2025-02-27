@@ -20,6 +20,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -146,19 +147,19 @@ fun PieChart(expenses: List<Category>, modifier: Modifier = Modifier) {
 
     // Ensure we only create animation states if expenses is not empty
     val animatedAngles = remember(expenses) {
-        expenses.map { mutableStateOf(0f) }
+        expenses.map { mutableFloatStateOf(0f) }
     }
 
     // Trigger animation when expenses are updated
     LaunchedEffect(expenses) {
         expenses.forEachIndexed { index, category ->
-            animatedAngles[index].value = ((category.amount.toFloat() / total.toFloat()) * 360f)
+            animatedAngles[index].floatValue = ((category.amount.toFloat() / total.toFloat()) * 360f)
         }
     }
 
-    val animatedSweepAngles = expenses.mapIndexed { index, category ->
+    val animatedSweepAngles = List(expenses.size) { index ->
         animateFloatAsState(
-            targetValue = animatedAngles[index].value,
+            targetValue = animatedAngles[index].floatValue,
             animationSpec = tween(durationMillis = 1200, delayMillis = index * 300) // 🔹 Delays each slice
         )
     }
@@ -275,6 +276,7 @@ fun MonthYearPickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.width(350.dp), // 🔹 Ensure the dialog is wide enough
         title = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -291,30 +293,39 @@ fun MonthYearPickerDialog(
             }
         },
         text = {
-            Column {
-                for (i in months.indices step 6) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp) // 🔹 More spacing for better readability
+            ) {
+                for (i in months.indices step 3) { // 🔹 3 columns instead of 6 to prevent misalignment
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                        horizontalArrangement = Arrangement.SpaceEvenly // 🔹 Ensures equal spacing
                     ) {
-                        for (j in i until (i + 6).coerceAtMost(months.size)) {
-                            Text(
-                                text = months[j],
+                        for (j in i until (i + 3).coerceAtMost(months.size)) {
+                            Box(
                                 modifier = Modifier
+                                    .width(80.dp) // 🔹 Ensure all text fits within a fixed width
+                                    .height(40.dp) // 🔹 Maintain consistent height
                                     .clickable {
-                                        selectedMonth = j // 🔹 Update selectedMonth when clicked
+                                        selectedMonth = j
                                         onMonthSelected(j + 1, selectedYear)
                                         onDismiss()
                                     }
-                                    .padding(8.dp)
                                     .background(
-                                        if (j == selectedMonth) Color.LightGray else Color.Transparent, // 🔹 Highlight selected month
-                                        shape = RoundedCornerShape(4.dp)
+                                        if (j == selectedMonth) Color.LightGray else Color.Transparent,
+                                        shape = RoundedCornerShape(8.dp)
                                     ),
-                                fontSize = 16.sp,
-                                fontWeight = if (j == selectedMonth) FontWeight.Bold else FontWeight.Normal, // 🔹 Bold selected month
-                                color = if (j == selectedMonth) Color.Black else Color.Gray
-                            )
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = months[j],
+                                    fontSize = 18.sp,
+                                    fontWeight = if (j == selectedMonth) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (j == selectedMonth) Color.Black else Color.Gray,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
                     }
                 }
