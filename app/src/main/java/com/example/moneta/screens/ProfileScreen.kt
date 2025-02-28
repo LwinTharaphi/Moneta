@@ -78,7 +78,7 @@ fun ProfileScreen(navController: NavController, isDarkTheme: Boolean, onThemeTog
 
     val userName by remember { mutableStateOf(currentUser?.displayName ?: "User") }
     val userEmail by remember { mutableStateOf(currentUser?.email ?: "No email available") }
-    var userPhotoUrl by remember { mutableStateOf(currentUser?.photoUrl?.toString()) }
+    val userPhotoUrl by remember { mutableStateOf(currentUser?.photoUrl?.toString()) }
 
     Column(
         modifier = Modifier

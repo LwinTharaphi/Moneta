@@ -72,9 +72,9 @@ class MainActivity : ComponentActivity() {
             ActivityResultContracts.RequestPermission()
         ) { isGranted ->
             if (isGranted) {
-                Log.d("FCM","Notificaiton permission granted")
+                Log.d("FCM","Notification permission granted")
             } else {
-                Log.d("FCM", "Notificaiton permission denied")
+                Log.d("FCM", "Notification permission denied")
             }
         }
         requestNotificationPermission()

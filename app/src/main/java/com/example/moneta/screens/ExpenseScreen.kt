@@ -22,10 +22,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -578,9 +576,9 @@ fun PieChart(expenses: List<Expense>, modifier: Modifier = Modifier) {
     LaunchedEffect(expenses) {
         expenses.forEachIndexed { index, expense ->
             if (index < animatedAngles.size) {
-                animatedAngles[index].floatValue = ((expense.amount.toFloat() / total.toFloat()) * 360f)
+                animatedAngles[index].floatValue = ((expense.amount / total.toFloat()) * 360f)
             } else {
-                animatedAngles += mutableFloatStateOf((expense.amount.toFloat() / total.toFloat()) * 360f)
+                animatedAngles += mutableFloatStateOf((expense.amount / total.toFloat()) * 360f)
             }
         }
     }
