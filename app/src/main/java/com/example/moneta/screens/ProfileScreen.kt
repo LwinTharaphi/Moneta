@@ -244,14 +244,17 @@ fun ImportCsvDialog(
                 onClick = onSelectCsv, // ✅ Only opens file picker when this is clicked
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
             ) {
-                Icon(imageVector = Icons.Default.UploadFile, contentDescription = "Upload CSV")
+                Icon(imageVector = Icons.Default.UploadFile, contentDescription = "Upload CSV", tint = MaterialTheme.colorScheme.background)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Select CSV", color = MaterialTheme.colorScheme.background)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", color = Color.Gray)
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+            ) {
+                Text("Cancel", color = MaterialTheme.colorScheme.background)
             }
         },
         shape = RoundedCornerShape(12.dp) // ✅ Keeps modern rounded look
