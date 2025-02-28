@@ -1,26 +1,39 @@
 package com.example.moneta.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
@@ -31,6 +44,30 @@ import com.google.firebase.auth.FirebaseUser
 fun ProfileScreen(navController: NavController, isDarkTheme: Boolean, onThemeToggle: (Boolean) -> Unit) {
     val auth = FirebaseAuth.getInstance()
     var currentUser by remember { mutableStateOf<FirebaseUser?>(auth.currentUser) }
+    var showDialog by remember { mutableStateOf(false) }
+    var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
+
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(context, "Permission needed to access profile picture", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // ✅ File Picker Launcher (Only activates inside the dialog)
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri ->
+            if (uri != null) {
+                selectedFileUri = uri
+                Log.d("FilePicker", "Selected File: $uri")
+            } else {
+                Log.d("FilePicker", "No file selected")
+            }
+        }
+    )
 
     // Reload user info when the screen is recomposed
     LaunchedEffect(Unit) {
@@ -39,8 +76,8 @@ fun ProfileScreen(navController: NavController, isDarkTheme: Boolean, onThemeTog
         }
     }
 
-    var userName by remember { mutableStateOf(currentUser?.displayName ?: "User") }
-    var userEmail by remember { mutableStateOf(currentUser?.email ?: "No email available") }
+    val userName by remember { mutableStateOf(currentUser?.displayName ?: "User") }
+    val userEmail by remember { mutableStateOf(currentUser?.email ?: "No email available") }
     var userPhotoUrl by remember { mutableStateOf(currentUser?.photoUrl?.toString()) }
 
     Column(
@@ -120,6 +157,21 @@ fun ProfileScreen(navController: NavController, isDarkTheme: Boolean, onThemeTog
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        // Import Expenses from CSV Button
+        Button(
+            onClick = { showDialog = true }, // ✅ Opens the instructional dialog
+            colors = ButtonDefaults.buttonColors(Color(0xFF10B981)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            Icon(imageVector = Icons.Default.UploadFile, contentDescription = "Upload CSV")
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Import Expenses from CSV")
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
         // Sign Out Button
         Button(
             onClick = {
@@ -136,6 +188,74 @@ fun ProfileScreen(navController: NavController, isDarkTheme: Boolean, onThemeTog
 
         Spacer(modifier = Modifier.height(20.dp)) // Extra space at the bottom
     }
+
+    // ✅ Show the dialog when triggered
+    if (showDialog) {
+        ImportCsvDialog(
+            onDismiss = { showDialog = false },
+            onSelectCsv = {
+                showDialog = false
+                filePickerLauncher.launch("*/*") // Opens all file types
+            }
+        )
+    }
+}
+
+@Composable
+fun ImportCsvDialog(
+    onDismiss: () -> Unit,
+    onSelectCsv: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "How to Import Expenses from CSV",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(8.dp)
+            ) {
+                Text("📌 The CSV file must have these columns:")
+                Text(
+                    text = "Date, Description, Amount, Category",
+                    fontWeight = FontWeight.Bold
+                )
+                Text("📅 Example:")
+                Text(
+                    text = """
+                        2025-02-27, Lunch, 10.5, Dining
+                        2025-02-26, Taxi, 5.0, Transport
+                    """.trimIndent(),
+                    fontSize = 14.sp,
+                    fontFamily = FontFamily.Monospace,
+                    color = Color.Gray
+                )
+                Text("✔ Once you select a file, expenses will be added automatically.")
+                Text("⚠ This action cannot be undone.")
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onSelectCsv, // ✅ Only opens file picker when this is clicked
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+            ) {
+                Icon(imageVector = Icons.Default.UploadFile, contentDescription = "Upload CSV")
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Select CSV", color = MaterialTheme.colorScheme.background)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = Color.Gray)
+            }
+        },
+        shape = RoundedCornerShape(12.dp) // ✅ Keeps modern rounded look
+    )
 }
 
 @Preview

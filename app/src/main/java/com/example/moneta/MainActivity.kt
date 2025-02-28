@@ -78,7 +78,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         requestNotificationPermission()
-
+        requestStoragePermission()
 
 
 
@@ -90,7 +90,6 @@ class MainActivity : ComponentActivity() {
 
         // Enable Firestore offline persistence if you're using Firestore
         FirebaseFirestore.getInstance().firestoreSettings = FirebaseFirestoreSettings.Builder()
-            .setPersistenceEnabled(true)
             .build()
 
         setContent {
@@ -126,6 +125,14 @@ class MainActivity : ComponentActivity() {
             if (ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED) {
                 Log.d("FCM", "Notification permission already granted")
             } else {
+                requestPermissionLauncher.launch(permission)
+            }
+        }
+    }
+    private fun requestStoragePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // Android 13+
+            val permission = Manifest.permission.READ_MEDIA_IMAGES
+            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
                 requestPermissionLauncher.launch(permission)
             }
         }
