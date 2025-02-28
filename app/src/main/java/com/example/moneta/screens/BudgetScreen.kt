@@ -169,7 +169,7 @@ fun BudgetScreen(navController: NavController) {
                     month = newMonth,
                     year = selectedYear,
                     total = newAmount.toFloatOrNull() ?: 0f,
-                    used = usedAmount
+                    used = 0.0f
                 )
                 db.collection("users").document(userId).collection("budgets")
                     .add(budget)
