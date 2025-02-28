@@ -6,6 +6,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -147,67 +149,82 @@ fun PieChart(expenses: List<Category>, modifier: Modifier = Modifier) {
 
     val total = expenses.sumOf { it.amount }
 
+    // Sort categories by amount in descending order
+    val sortedExpenses = expenses.sortedByDescending { it.amount }
+
     // Ensure we only create animation states if expenses is not empty
-    val animatedAngles = remember(expenses) {
-        expenses.map { mutableFloatStateOf(0f) }
+    val animatedAngles = remember(sortedExpenses) {
+        sortedExpenses.map { mutableFloatStateOf(0f) }
     }
 
     // Trigger animation when expenses are updated
-    LaunchedEffect(expenses) {
-        expenses.forEachIndexed { index, category ->
+    LaunchedEffect(sortedExpenses) {
+        sortedExpenses.forEachIndexed { index, category ->
             animatedAngles[index].floatValue = ((category.amount.toFloat() / total.toFloat()) * 360f)
         }
     }
 
-    val animatedSweepAngles = List(expenses.size) { index ->
+    val animatedSweepAngles = List(sortedExpenses.size) { index ->
         animateFloatAsState(
             targetValue = animatedAngles[index].floatValue,
             animationSpec = tween(durationMillis = 1200, delayMillis = index * 300) // 🔹 Delays each slice
         )
     }
 
-    Canvas(modifier = modifier.size(200.dp)) {
-        val diameter = size.minDimension * 0.8f
-        val radius = diameter / 2
-        var startAngle = -90f
-        val center = Offset(size.width / 2, size.height / 2)
-
-        expenses.forEachIndexed { index, category ->
-            val animatedSweepAngle = animatedSweepAngles.getOrNull(index)?.value ?: 0f // 🔹 Prevents crash
-
-            // Draw the animated arc slice
-            drawArc(
-                color = getCategoryColor(category.name),
-                startAngle = startAngle,
-                sweepAngle = animatedSweepAngle,
-                useCenter = true,
-                topLeft = Offset(center.x - radius, center.y - radius),
-                size = Size(diameter, diameter)
-            )
-
-            startAngle += animatedSweepAngle
-        }
-    }
-
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        expenses.forEach { category ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
+        Canvas(modifier = modifier.size(200.dp)) {
+            val diameter = size.minDimension * 0.8f
+            val radius = diameter / 2
+            var startAngle = -90f
+            val center = Offset(size.width / 2, size.height / 2)
+
+            sortedExpenses.forEachIndexed { index, category ->
+                val animatedSweepAngle = animatedSweepAngles.getOrNull(index)?.value ?: 0f // 🔹 Prevents crash
+
+                // Draw the animated arc slice
+                drawArc(
+                    color = getCategoryColor(category.name),
+                    startAngle = startAngle,
+                    sweepAngle = animatedSweepAngle,
+                    useCenter = true,
+                    topLeft = Offset(center.x - radius, center.y - radius),
+                    size = Size(diameter, diameter)
+                )
+
+                startAngle += animatedSweepAngle
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 🔹 Horizontal scrollable legend using LazyRow
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp)
+        ) {
+            items(sortedExpenses) { category ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .size(16.dp)
-                        .background(getCategoryColor(category.name), shape = RoundedCornerShape(4.dp))
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "${category.name}: ${"%.1f".format((category.amount / total) * 100)}%",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                        .padding(4.dp)
+                        .background(getCategoryColor(category.name).copy(alpha = 0.3f), shape = RoundedCornerShape(6.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(14.dp)
+                            .background(getCategoryColor(category.name), shape = RoundedCornerShape(4.dp))
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "${category.name}: ${"%.1f".format((category.amount / total) * 100)}%",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
         }
     }
