@@ -10,8 +10,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
@@ -29,7 +33,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -37,6 +43,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import coil3.compose.rememberAsyncImagePainter
 import com.example.moneta.screens.SignInScreen
 import com.example.moneta.screens.SignUpScreen
 import com.example.moneta.screens.*
@@ -59,7 +66,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
     )
     object AddReminder: Screen("add_reminder_screen", "Add Reminder", Icons.Default.Add)
     object EditProfile: Screen("edit_profile_screen","Edit Profile", Icons.Default.Edit)
-    object FinancialNews: Screen("financial_news_screen", "Financial News", Icons.Filled.Public) // Added
+    object FinancialNews: Screen("financial_news_screen", "News", Icons.Filled.Public) // Added
     object EditReminderScreen: Screen("edit_reminder_screen/{reminderId}", "Edit Reminder", Icons.Default.Edit)
 }
 
@@ -96,9 +103,11 @@ class MainActivity : ComponentActivity() {
             val auth = FirebaseAuth.getInstance()
             val navController = rememberNavController()
             var isDarkTheme by remember { mutableStateOf(false) }
+            var profileImageUri by remember { mutableStateOf<String?>(null) } // Initialize to store profile image URL
 
             LaunchedEffect(auth.currentUser) {
                 if (auth.currentUser != null) {
+                    profileImageUri = auth.currentUser?.photoUrl?.toString() // Fetch the profile image URL
                     navController.navigate(Screen.Expense.route) {
                         popUpTo(0) // Clear back stack
                     }
@@ -114,7 +123,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainScreen(navController, isDarkTheme, onThemeToggle = { isDarkTheme = it })
+                    MainScreen(navController, isDarkTheme, onThemeToggle = { isDarkTheme = it }, profileImageUri = profileImageUri) // Pass profile image URL)
                 }
             }
         }
@@ -144,19 +153,26 @@ class MainActivity : ComponentActivity() {
 fun MainScreen(
     navController: NavHostController,
     isDarkTheme: Boolean,
-    onThemeToggle: (Boolean) -> Unit // Callback to toggle theme
+    onThemeToggle: (Boolean) -> Unit, // Callback to toggle theme
+    profileImageUri: String? // Add parameter for profile image URL
 ) {
-    val screens = listOf(Screen.Expense, Screen.Report, Screen.Budget, Screen.Profile, Screen.FinancialNews)
+    val screens = listOf(Screen.Expense, Screen.Report, Screen.Budget, Screen.FinancialNews, Screen.Profile)
     var selectedScreen by remember { mutableStateOf(Screen.Expense.route) }
     val reminders = remember { mutableStateOf<List<Triple<String, String, String>>>(emptyList()) }
 
     Scaffold(
         bottomBar = {
-            // Hide the bottom navigation on SignIn or SignUp screens
+            // Make sure to check if profile image URI is null or not
             if (selectedScreen != Screen.Notification.route && selectedScreen != Screen.SignIn.route && selectedScreen != Screen.SignUp.route) {
-                BottomNavigationBar(navController, screens, selectedScreen) { newRoute ->
-                    selectedScreen = newRoute
-                }
+                BottomNavigationBar(
+                    navController = navController,
+                    screens = screens,
+                    selectedScreen = selectedScreen,
+                    onItemSelected = { newRoute ->
+                        selectedScreen = newRoute // Safe handling of route (non-null string)
+                    },
+                    profileImageUri = profileImageUri // Passing profileImageUri
+                )
             }
         }
     ) { paddingValues ->
@@ -232,7 +248,8 @@ fun BottomNavigationBar(
     navController: NavHostController,
     screens: List<Screen>,
     selectedScreen: String,
-    onItemSelected: (String) -> Unit
+    onItemSelected: (String) -> Unit, // Expecting a non-null string for the route
+    profileImageUri: String? // Receive profile image URL
 ) {
     NavigationBar {
         screens.forEach { screen ->
@@ -240,7 +257,24 @@ fun BottomNavigationBar(
             if (screen.route != Screen.SignIn.route && screen.route != Screen.SignUp.route) {
                 NavigationBarItem(
                     label = { Text(screen.title) },
-                    icon = { screen.icon?.let { Icon(it, contentDescription = screen.title) } },
+                    icon = {
+                        if (screen.route == Screen.Profile.route && profileImageUri != null) {
+                            // Show Profile Image Icon
+                            Box(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(CircleShape)
+                            ) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(profileImageUri),
+                                    contentDescription = "Profile Image",
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        } else {
+                            screen.icon?.let { Icon(it, contentDescription = screen.title) }
+                        }
+                    },
                     selected = selectedScreen == screen.route,
                     onClick = {
                         navController.navigate(screen.route) {
@@ -250,7 +284,7 @@ fun BottomNavigationBar(
                             launchSingleTop = true
                             restoreState = true
                         }
-                        onItemSelected(screen.route)
+                        onItemSelected(screen.route) // Pass the route as a non-null string
                     }
                 )
             }
