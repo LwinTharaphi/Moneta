@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,7 +45,7 @@ fun NotificationScreen(navController: NavController) {
                 title = { Text("Notifications") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -90,15 +90,15 @@ fun NotificationCard(notification: Notification) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = notification.title,
-                fontSize = MaterialTheme.typography.headlineMedium.fontSize,
-                fontWeight = MaterialTheme.typography.headlineMedium.fontWeight
+                fontSize = MaterialTheme.typography.headlineSmall.fontSize,
+                fontWeight = MaterialTheme.typography.headlineSmall.fontWeight
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(text = notification.body, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Time: ${notification.timestamp}",
-                fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                 color = MaterialTheme.colorScheme.secondary
             )
         }

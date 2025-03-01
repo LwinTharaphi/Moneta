@@ -54,20 +54,20 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector?) {
-    object SignIn: Screen("sign_in_screen", "Sign In", null)
-    object SignUp: Screen("sign_up_screen", "Sign Up", null)
-    object Report : Screen("report_screen", "Report", Icons.Filled.Assessment)
-    object Expense: Screen("expense_screen", "Expenses", Icons.Filled.ShoppingCart)
-    object Budget: Screen("budget_screen", "Budget", Icons.Filled.AttachMoney)
-    object Notification: Screen("notification_screen", "Notification", Icons.Filled.Notifications)
-    object Profile: Screen("profile_screen", "Profile", Icons.Filled.Person)
-    object Reminder: Screen("reminder_screen", "Reminder",
+    data object SignIn: Screen("sign_in_screen", "Sign In", null)
+    data object SignUp: Screen("sign_up_screen", "Sign Up", null)
+    data object Report : Screen("report_screen", "Report", Icons.Filled.Assessment)
+    data object Expense: Screen("expense_screen", "Expenses", Icons.Filled.ShoppingCart)
+    data object Budget: Screen("budget_screen", "Budget", Icons.Filled.AttachMoney)
+    data object Notification: Screen("notification_screen", "Notification", Icons.Filled.Notifications)
+    data object Profile: Screen("profile_screen", "Profile", Icons.Filled.Person)
+    data object Reminder: Screen("reminder_screen", "Reminder",
         Icons.AutoMirrored.Filled.KeyboardArrowRight
     )
-    object AddReminder: Screen("add_reminder_screen", "Add Reminder", Icons.Default.Add)
-    object EditProfile: Screen("edit_profile_screen","Edit Profile", Icons.Default.Edit)
-    object FinancialNews: Screen("financial_news_screen", "News", Icons.Filled.Public) // Added
-    object EditReminderScreen: Screen("edit_reminder_screen/{reminderId}", "Edit Reminder", Icons.Default.Edit)
+    data object AddReminder: Screen("add_reminder_screen", "Add Reminder", Icons.Default.Add)
+    data object EditProfile: Screen("edit_profile_screen","Edit Profile", Icons.Default.Edit)
+    data object FinancialNews: Screen("financial_news_screen", "News", Icons.Filled.Public) // Added
+    data object EditReminderScreen: Screen("edit_reminder_screen/{reminderId}", "Edit Reminder", Icons.Default.Edit)
 }
 
 class MainActivity : ComponentActivity() {
@@ -158,7 +158,7 @@ fun MainScreen(
 ) {
     val screens = listOf(Screen.Expense, Screen.Report, Screen.Budget, Screen.FinancialNews, Screen.Profile)
     var selectedScreen by remember { mutableStateOf(Screen.Expense.route) }
-    val reminders = remember { mutableStateOf<List<Triple<String, String, String>>>(emptyList()) }
+    remember { mutableStateOf<List<Triple<String, String, String>>>(emptyList()) }
 
     Scaffold(
         bottomBar = {
@@ -195,7 +195,7 @@ fun MainScreen(
             }
             composable(Screen.Report.route) {
                 selectedScreen = Screen.Report.route
-                ReportScreen(navController) // Expense Screen
+                ReportScreen() // Expense Screen
             }
             composable(Screen.Budget.route) {
                 selectedScreen = Screen.Budget.route

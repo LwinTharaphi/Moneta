@@ -122,10 +122,30 @@ fun ExpenseScreen(
                     }
                 )
                 Spacer(modifier = Modifier.width(16.dp))
+                // Make the date text clickable to open a DatePickerDialog
                 Text(
-                    dateFormat.format(selectedDate),
+                    text = dateFormat.format(selectedDate),
                     style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(horizontal = 8.dp)
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp)
+                        .clickable {
+                            // Create a Calendar instance with the current selected date
+                            val calendar = Calendar.getInstance().apply { time = selectedDate }
+                            // Create and show the DatePickerDialog
+                            android.app.DatePickerDialog(
+                                context,
+                                { _, year, month, dayOfMonth ->
+                                    // Update the selectedDate with the chosen date
+                                    val newDate = Calendar.getInstance().apply {
+                                        set(year, month, dayOfMonth)
+                                    }.time
+                                    viewModel.updateSelectedDate(newDate)
+                                },
+                                calendar.get(Calendar.YEAR),
+                                calendar.get(Calendar.MONTH),
+                                calendar.get(Calendar.DAY_OF_MONTH)
+                            ).show()
+                        }
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(
@@ -189,7 +209,7 @@ fun ExpenseScreen(
         // Total Expense at the bottom right (placed below LazyColumn)
         val totalExpense = expenses.sumOf { it.amount.toDouble() }
         Text(
-            text = "Total: ฿$totalExpense",
+            text = "Total Expense: ฿ ${"%,.2f".format(totalExpense)}",
             style = MaterialTheme.typography.bodyLarge.copy(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.secondary // Emerald Green
@@ -263,7 +283,7 @@ fun ExpenseItem(expense: Expense, onClick: () -> Unit) {
                 modifier = Modifier.weight(1f)
             )
             Text(
-                text = "฿${String.format(Locale.getDefault(), "%.2f", expense.amount)}",
+                text = "฿${String.format(Locale.getDefault(), "%,.2f", expense.amount)}",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.secondary

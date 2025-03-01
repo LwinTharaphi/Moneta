@@ -28,13 +28,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
 import com.example.moneta.repository.ExpenseRepository
 import com.example.moneta.viewmodel.ReportViewModel
 import com.example.moneta.viewmodel.ReportViewModelFactory
 
 @Composable
-fun ReportScreen(navController: NavController) {
+fun ReportScreen() {
     val context = LocalContext.current // 🔹 Get Context
     val expenseRepository = ExpenseRepository.getInstance(context) // 🔹 Pass context
     val viewModel: ReportViewModel = viewModel(factory = ReportViewModelFactory(expenseRepository))
@@ -98,7 +97,7 @@ fun ReportScreen(navController: NavController) {
             // Centered Total Expense Text
             Text(
                 text = if (totalExpense > 0)
-                    "Total Expense: ฿ ${"%.2f".format(totalExpense)}"
+                    "Total Expense: ฿ ${"%,.2f".format(totalExpense)}"
                 else
                     "No expenses recorded for this month.",
                 style = MaterialTheme.typography.bodyLarge.copy(
@@ -252,7 +251,7 @@ fun CategoryRow(category: Category) {
         )
         // Amount
         Text(
-            text = "฿ ${"%.2f".format(category.amount)}",
+            text = "฿ ${"%,.2f".format(category.amount)}",
             style = MaterialTheme.typography.bodyMedium.copy(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.secondary

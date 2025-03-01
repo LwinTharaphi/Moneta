@@ -1,16 +1,13 @@
 package com.example.moneta.screens
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -29,12 +26,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import kotlin.random.Random
+import java.util.Locale
+import kotlin.math.abs
 
 // Data class for Budget
 data class BudgetData(
@@ -57,7 +57,6 @@ fun BudgetScreen(navController: NavController) {
         navController.navigate("login_screen")
         return
     }
-    val usedAmount = 6000f
     var budgets by remember { mutableStateOf(listOf<BudgetData>()) }
     var showDialog by remember { mutableStateOf(false) }
     var editDialog by remember { mutableStateOf(false) }
@@ -77,7 +76,7 @@ fun BudgetScreen(navController: NavController) {
                     document.toObject(BudgetData::class.java)?.copy(id = document.id) ?: BudgetData()
                 }
             }
-            .addOnFailureListener { e ->
+            .addOnFailureListener {
                 // Handle the error
             }
     }
@@ -133,7 +132,7 @@ fun BudgetScreen(navController: NavController) {
                             .addOnSuccessListener {
                                 budgets = budgets.filterNot { it == budget }
                             }
-                            .addOnFailureListener { e ->
+                            .addOnFailureListener {
                                 // Handle the error
                             }
                     }
@@ -179,7 +178,7 @@ fun BudgetScreen(navController: NavController) {
                         newAmount = ""
                         showDialog = false
                     }
-                    .addOnFailureListener { e ->
+                    .addOnFailureListener {
                         // Handle the error
                     }
             },
@@ -211,7 +210,7 @@ fun BudgetScreen(navController: NavController) {
                             newAmount = ""
                             editDialog = false
                         }
-                        .addOnFailureListener { e ->
+                        .addOnFailureListener {
                             // Handle the error
                         }
                 }
@@ -235,39 +234,58 @@ fun BudgetScreen(navController: NavController) {
 
 @Composable
 fun BudgetRow(budget: BudgetData, onEdit: () -> Unit, onDelete: () -> Unit) {
-    val backgroundColor = remember { getRandomPaleColor() }
+    // Fixed list of pale colors
+    val fixedColors = listOf(
+        Color(0xFFE3F2FD), // Light Blue
+        Color(0xFFFFF9C4), // Light Yellow
+        Color(0xFFC8E6C9), // Light Green
+        Color(0xFFFFCDD2), // Light Red
+        Color(0xFFD1C4E9)  // Light Purple
+    )
+    // Use budget.id hash to choose a color, ensuring the same budget always has the same color
+    val backgroundColor = remember(budget.id) {
+        fixedColors[abs(budget.id.hashCode()) % fixedColors.size]
+    }
 
-    Row(
+    // Use a Card to improve UI consistency with rounded corners and elevation
+    Card(
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .background(backgroundColor, RoundedCornerShape(10.dp))
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(8.dp)
     ) {
-        BudgetDonutChart(used = budget.used, total = budget.total)
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(budget.month, fontWeight = FontWeight.Bold, color = Color.Black)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BudgetDonutChart(used = budget.used, total = budget.total)
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy((-24).dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = onEdit) {
-                        Icon(Icons.Filled.Edit, contentDescription = "Edit", tint = Color.Black)
-                    }
-                    IconButton(onClick = onDelete) {
-                        Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = Color.Red)
+                    Text(budget.month, fontWeight = FontWeight.Bold, color = Color.Black)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy((-24).dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = onEdit) {
+                            Icon(Icons.Filled.Edit, contentDescription = "Edit", tint = Color.Black)
+                        }
+                        IconButton(onClick = onDelete) {
+                            Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = Color.Red)
+                        }
                     }
                 }
+                Text("Total: ฿${String.format(Locale.getDefault(), "%,.2f", budget.total)}", color = Color.Black)
+                Text("Used: ฿${String.format(Locale.getDefault(), "%,.2f", budget.used)}", color = Color.Black)
             }
-            Text("Total: ฿${budget.total}", color = Color.Black)
-            Text("Used: ฿${budget.used}", color = Color.Black)
         }
     }
 }
@@ -401,11 +419,11 @@ fun YearPickerDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = { selectedYear-- }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Previous Year")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous Year")
                     }
                     Text(text = "$selectedYear", style = MaterialTheme.typography.headlineMedium)
                     IconButton(onClick = { selectedYear++ }) {
-                        Icon(Icons.Default.ArrowForward, contentDescription = "Next Year")
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next Year")
                     }
                 }
             }
@@ -421,13 +439,6 @@ fun YearPickerDialog(
             }
         }
     )
-}
-
-fun getRandomPaleColor(): Color {
-    val red = Random.nextInt(150, 255)
-    val green = Random.nextInt(150, 255)
-    val blue = Random.nextInt(150, 255)
-    return Color(red, green, blue, 255)
 }
 
 @Preview(showBackground = true)
