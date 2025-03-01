@@ -13,10 +13,11 @@
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
+  - [Firebase Setup](#firebase-setup)
 - [Usage](#usage)
 - [Built With](#built-with)
+- [Backend Server for FCM Notifications](#backend-server-for-fcm-notifications)
 - [Contributing](#contributing)
-- [Future Updates](#future-updates)
 - [License](#license)
 - [Contact](#contact)
 
@@ -64,6 +65,16 @@ Include screenshots or GIFs of your app in action here. Replace the placeholders
    - Open the project in Android Studio.
    - Sync Gradle and build the project.
    - Click the "Run" button (green play icon) and select an emulator or connected device.
+  
+### Firebase Setup
+
+To enable cloud storage with Firebase Firestore, follow these steps:
+
+1. Go to the [Firebase Console](https://console.firebase.google.com/) and create a new project (or use an existing one).
+2. In your Firebase project, navigate to **Project Settings** and download the configuration file.  
+   - For Android, download the `google-services.json` file.
+3. Place the `google-services.json` file in the `app/` directory of your project.
+4. Ensure that your project-level `build.gradle` and app-level `build.gradle` files are configured as described in the [Firebase setup documentation](https://firebase.google.com/docs/android/setup).
 
 ## Usage
 
@@ -82,6 +93,11 @@ Include screenshots or GIFs of your app in action here. Replace the placeholders
 - [Retrofit](https://square.github.io/retrofit/) – Networking library (for fetching financial news).
 - [Coil](https://coil-kt.github.io/coil/) – Image loading library.
 - Other libraries and tools as required.
+
+## Backend Server for FCM Notifications
+
+Moneta uses Firebase Cloud Messaging (FCM) to send notifications. For the backend server that manages FCM notifications, please refer to the [Moneta Server GitHub repository](https://github.com/AeliaWin/Moneta_server).
+
 
 ## Contributing
 
