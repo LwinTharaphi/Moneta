@@ -3,7 +3,7 @@
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://your-build-url)  
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-**An intuitive expense, budget, and reminder tracker that keeps you on top of your finances while delivering the latest financial news. This project is Final Project for our Android Course**
+**An intuitive expense, budget, and reminder tracker that keeps you on top of your finances while delivering the latest financial news. This project is Final Project for our Android Course.**
 
 ## Table of Contents
 
