@@ -60,9 +60,6 @@ Include screenshots or GIFs of your app in action here. Replace the placeholders
 
 1. **Clone the repository:**
    - Download the ZIP file and open it in Android Studio, or use Git:
-     ```bash
-     git clone https://your-repository-url.git
-     ```
 2. **Build and run:**
    - Open the project in Android Studio.
    - Sync Gradle and build the project.
